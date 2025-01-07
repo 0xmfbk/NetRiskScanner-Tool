@@ -7,6 +7,7 @@ import subprocess
 import threading
 from queue import Queue
 import tkinter as tk  # Explicit import for tkinter widgets like Text
+import time  # For simulating progress updates
 
 
 class NmapGUI:
@@ -19,7 +20,7 @@ class NmapGUI:
         self.nmap_runner = None  # Placeholder for NmapRunner instance
         self.stop_event = threading.Event()
 
-        self.progress_value = ttk.IntVar()
+        self.progress_value = ttk.IntVar(value=0)  # Initialize progress bar value
         self.status_message = ttk.StringVar(value="Ready")
 
         self.result_queue = Queue()
@@ -196,6 +197,11 @@ class NmapGUI:
         """Update the status bar message."""
         self.status_message.set(message)
 
+    def update_progress(self, progress_value):
+        """Update the progress bar value."""
+        self.progress_value.set(progress_value)
+        self.progress_bar.update_idletasks()
+
     def enqueue_result(self, result_line):
         """Add result lines to the queue for thread-safe updates."""
         self.result_queue.put(result_line)
@@ -227,7 +233,7 @@ class NmapGUI:
             "scan_type": self.scan_type.get() or self.advanced_scan_type.get(),
             "aggressive_scan": self.aggressive_scan.get(),
             "no_ping": self.no_ping_option.get(),
-            "reason": self.reason_option.get(),  # Include reason checkbox
+            "reason": self.reason_option.get(),
         }
 
         if not self.validate_inputs(target, port_range, spoof_mac):
@@ -237,6 +243,7 @@ class NmapGUI:
         self.update_status("Scanning...")
         self.scan_button.config(state=DISABLED)
         self.stop_button.config(state=NORMAL)
+        self.progress_value.set(0)
 
         self.stop_event.clear()
         threading.Thread(target=self.run_nmap_scan, args=(target, port_range, options), daemon=True).start()
@@ -255,17 +262,24 @@ class NmapGUI:
         return True
 
     def run_nmap_scan(self, target, port_range, options):
-        """Run the Nmap scan command."""
+        """Run the Nmap scan command and update progress."""
         try:
             nmap_command = self.nmap_runner.build_nmap_command(target, port_range, options)
             process = subprocess.Popen(nmap_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            for line in process.stdout:
+            total_lines = 100  # Placeholder for progress calculation
+
+            for i, line in enumerate(process.stdout):
                 if self.stop_event.is_set():
                     process.terminate()
                     self.update_status("Scan stopped.")
                     break
+
+                # Simulate progress (update based on lines read)
+                self.update_progress(int((i / total_lines) * 100))
                 self.enqueue_result(line.strip())
+
             process.wait()
+            self.update_progress(100)  # Set progress to complete
             self.update_status("Scan Completed.")
         except Exception as e:
             self.update_status(f"Error: {str(e)}")
