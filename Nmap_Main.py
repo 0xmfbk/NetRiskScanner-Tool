@@ -106,7 +106,7 @@ class NmapGUI:
         self.target_feedback = ttk.Label(target_frame, text="", bootstyle="danger")
         self.target_feedback.pack(side=LEFT, padx=5)
 
-        self.add_labeled_entry(target_frame, "Port Range:", 15, None, "port_range_entry")
+        self.add_labeled_entry(target_frame, "Port, Ports or Range:", 15, None, "port_range_entry")
         self.add_labeled_entry(target_frame, "Spoof MAC:", 15, None, "spoof_mac")
 
     def add_labeled_entry(self, parent, label_text, width, validation, attr_name):
