@@ -109,21 +109,21 @@ python Nmap_Main.py
 
 Enter Target Information:
 
-** Specify the target IP address, domain name, or CIDR range in the Target field.
-** Optionally, specify a port range (e.g., 20-80) and spoof MAC address.
-** Select Scan Type:
-** Choose from the available scan types (e.g., SYN Scan, TCP Connect, UDP Scan) in the dropdown menu.
-** Enable Advanced Options:
-** Enable features like OS detection, service scan, verbose output, or disable ping.
+- Specify the target IP address, domain name, or CIDR range in the Target field.
+- Optionally, specify a port range (e.g., 20-80) and spoof MAC address.
+- Select Scan Type:
+- Choose from the available scan types (e.g., SYN Scan, TCP Connect, UDP Scan) in the dropdown menu.
+- Enable Advanced Options:
+- Enable features like OS detection, service scan, verbose output, or disable ping.
 
 
 ## **3. Executing the Scan**
 
-** Click the Start Scan button to begin scanning.
-** Monitor the scan progress with the progress bar.
-** View:
-**   Scan Results in the left panel.
-**   Risk Assessment in the right panel.
+- Click the Start Scan button to begin scanning.
+- Monitor the scan progress with the progress bar.
+- View:
+  -  Scan Results in the left panel.
+  -  Risk Assessment in the right panel.
 
 
 ## **4. Exporting Results**
