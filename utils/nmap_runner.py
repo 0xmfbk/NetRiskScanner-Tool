@@ -1,15 +1,18 @@
 import subprocess
 import threading
+import json
 
 
 class NmapRunner:
-    def __init__(self, update_result_callback):
+    def __init__(self, update_result_callback, update_risk_callback=None):
         """
         Initializes the NmapRunner class.
         Args:
             update_result_callback (function): Callback function to handle scan results in real time.
+            update_risk_callback (function): Optional callback to handle risk assessment based on scan results.
         """
         self.update_result_callback = update_result_callback
+        self.update_risk_callback = update_risk_callback
         self.scan_thread = None
         self.scan_process = None
         self.stop_event = threading.Event()  # Event to signal scan termination
@@ -29,7 +32,7 @@ class NmapRunner:
         # Adding scan type
         scan_type = options.get("scan_type")
         if scan_type:
-            base_command.append(scan_type)
+            base_command.append(scan_type.split(": ")[1])  # Extract the actual command part
 
         # Adding port range
         if port_range:
@@ -64,8 +67,20 @@ class NmapRunner:
         if options.get("reason"):
             base_command.append("--reason")
 
-        # Append target
-        base_command.append(target)
+        # Adding fragmented packet scan option
+        if options.get("Fragmented Packet Scan"):
+            base_command.append("-f")
+
+        # Adding timing template
+        timing_template = options.get("timing_template")
+        if timing_template:
+            base_command.append(timing_template.split(" ")[0])  # Extract T0-T5
+
+        # Validate and append target
+        if target:
+            base_command.append(target)
+        else:
+            raise ValueError("Target cannot be empty.")
 
         return base_command
 
@@ -84,28 +99,64 @@ class NmapRunner:
                 text=True
             )
 
+            scan_results = []
             # Stream output line by line
             for line in self.scan_process.stdout:
                 if self.stop_event.is_set():
                     self.scan_process.terminate()
                     self.update_result_callback("Scan stopped by user.")
-                    break
+                    return
+                scan_results.append(line.strip())
                 self.update_result_callback(line.strip())
 
-            # Check for errors from stderr
+            # Capture any errors
             for error_line in self.scan_process.stderr:
                 self.update_result_callback(f"Error: {error_line.strip()}")
 
             self.scan_process.wait()
+
+            # Perform risk assessment on scan results
+            if not self.stop_event.is_set() and self.update_risk_callback:
+                risk_report = self.perform_risk_assessment(scan_results)
+                self.update_risk_callback(risk_report)
+
             if not self.stop_event.is_set():
                 self.update_result_callback("Scan completed successfully.")
         except FileNotFoundError:
             self.update_result_callback("Error: Nmap is not installed or not available in the PATH.")
+        except ValueError as e:
+            self.update_result_callback(f"Invalid scan parameters: {e}")
         except Exception as e:
-            self.update_result_callback(f"Error during scan: {str(e)}")
+            self.update_result_callback(f"Unexpected error during scan: {str(e)}")
         finally:
             self.scan_process = None
             self.stop_event.clear()  # Reset stop event for the next scan
+
+    def perform_risk_assessment(self, scan_results):
+        """
+        Analyzes the scan results and generates a risk assessment report.
+        Args:
+            scan_results (list): List of scan result lines.
+        Returns:
+            str: Risk assessment report in string format.
+        """
+        open_ports = []
+        vulnerabilities = []
+
+        # Parse results to identify risks
+        for line in scan_results:
+            if "open" in line:  # Look for open ports
+                open_ports.append(line)
+            if "vulnerable" in line or "CVE" in line:  # Look for vulnerability mentions
+                vulnerabilities.append(line)
+
+        # Compile risk report
+        risk_report = {
+            "Open Ports": open_ports,
+            "Potential Vulnerabilities": vulnerabilities
+        }
+
+        return json.dumps(risk_report, indent=4)
 
     def start_scan(self, target, port_range, options):
         """
@@ -129,8 +180,10 @@ class NmapRunner:
             # Start the scan in a separate thread
             self.scan_thread = threading.Thread(target=self.run_scan, args=(command,), daemon=True)
             self.scan_thread.start()
+        except ValueError as e:
+            self.update_result_callback(f"Error starting scan: {e}")
         except Exception as e:
-            self.update_result_callback(f"Error starting scan: {str(e)}")
+            self.update_result_callback(f"Unexpected error starting scan: {str(e)}")
 
     def stop_scan(self):
         """
