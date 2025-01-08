@@ -96,13 +96,6 @@ pip install -r requirements.txt
 nmap --version
 ```
 
----
-
-### **4. Launch the Application**
-```bash
-python Nmap_Main.py
-```
-
 # Usage
 
 ## 1. Launching the Tool
