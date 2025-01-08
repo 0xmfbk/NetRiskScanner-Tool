@@ -1,97 +1,107 @@
-# DSC-Nmap-GUI Tool
+# **DSC-Nmap-GUI Tool**
 
-DSC-Nmap-GUI is a graphical user interface tool built on `tkinter` and `ttkbootstrap` for interacting with the Nmap scanning tool. It simplifies network scanning, risk assessment, and provides an intuitive display of results.
-
----
-
-## Features
-
-- Supports various Nmap scan types such as SYN, TCP Connect, Ping, and UDP scans.
-- Displays scan results in real-time in a user-friendly interface.
-- Risk assessment feature to analyze vulnerabilities.
-- Options for OS detection, service scan, aggressive mode, and more.
-- Export scan results to text or JSON files.
-- Customizable themes for light and dark modes.
+The **DSC-Nmap-GUI Tool** is an advanced yet user-friendly graphical user interface built with Python using `tkinter` and `ttkbootstrap`. Designed for network professionals, ethical hackers, and IT enthusiasts, this tool provides seamless interaction with the powerful Nmap scanning utility. It simplifies complex network scanning and risk assessment processes, offering real-time results and actionable insights.
 
 ---
 
-## Prerequisites
+## **Features**
 
-- **Python 3.8 or higher** is required.
-- Ensure Nmap is installed on your system. Download from [Nmap Official Website](https://nmap.org/download.html).
-- An active internet connection for installing Python dependencies.
+### **1. Comprehensive Nmap Scanning**
+- **Supports Various Scan Types:**
+  - SYN Scan (`-sS`)
+  - TCP Connect Scan (`-sT`)
+  - Ping Scan (`-sn`)
+  - UDP Scan (`-sU`)
+  - Null Scan (`-sN`)
+  - FIN Scan (`-sF`)
+  - Xmas Scan (`-sX`)
+  - ACK Scan (`-sA`)
+  - Window Scan (`-sW`)
+  - IP Protocol Scan (`-sO`)
+- **Advanced Options:**
+  - OS detection (`-O`)
+  - Service detection (`-sV`)
+  - Aggressive scan mode (`-A`)
+  - Disable ping (`-Pn`)
+  - Verbose output (`-v`)
 
 ---
 
-## Installation
+### **2. Real-Time Results Display**
+- **Side-by-Side Panels:**
+  - **Left Panel:** Displays live scan results in real-time.
+  - **Right Panel:** Provides a detailed risk assessment based on vulnerabilities found during the scan.
+- Progress bar for tracking scan completion.
 
-Follow these steps to install and run the DSC-Nmap-GUI Tool:
+---
 
-1. Clone or download this repository to your local machine.
-2. Navigate to the project directory using the terminal.
-3. Install the required Python libraries by running:
+### **3. Risk Assessment**
+- Analyzes scan results to identify and highlight potential vulnerabilities.
+- Helps prioritize mitigation actions with actionable insights.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+---
 
-4. Verify that Nmap is installed and available in your system's PATH by running:
+### **4. Export Options**
+- Save scan results and risk assessments to `.txt` or `.json` files for record-keeping or further analysis.
 
+---
+
+### **5. Customizable Themes**
+- Switch between **light mode** (`united`) and **dark mode** (`cyborg`) for personalized usability.
+
+---
+
+## **Prerequisites**
+
+Ensure the following are installed and set up on your system:
+
+### **1. Python**
+- **Python 3.8 or higher** is required. Download it from [Python Official Website](https://www.python.org/downloads/).
+
+### **2. Nmap**
+- Ensure Nmap is installed on your system. Download it from [Nmap Official Website](https://nmap.org/download.html).
+- Verify installation by running:
     ```bash
     nmap --version
     ```
 
-5. Run the application using:
-
-    ```bash
-    python Nmap_Main.py
-    ```
-
----
-
-## Usage
-
-1. Launch the application by running `python Nmap_Main.py`.
-2. Input the target IP address or domain in the **Target** field.
-3. Specify a port range (optional).
-4. Choose a scan type and additional options as needed.
-5. Click **Start Scan** to begin the Nmap scan.
-6. View scan results in the **Scan Results** panel and risk assessments in the **Risk Assessment** panel.
-7. Export results to a file using the `File > Export Results` menu option.
+### **3. Required Python Libraries**
+- The required Python libraries are listed in the `requirements.txt` file. They include:
+  - `ttkbootstrap` for modern GUI components.
+  - `tkinter` for core GUI functionalities.
 
 ---
 
-## License and Intellectual Property
+## **Installation**
 
-- This tool is developed by **Mustafa Banikhalaf** and **Mohammad Majdalawy**.
-- All rights reserved. You are permitted to use, modify, and distribute this tool under the terms of its license.
-- Any usage of this tool for malicious purposes is strictly prohibited.
+Follow these steps to set up and run the DSC-Nmap-GUI Tool:
 
----
-
-## Support
-
-For support or inquiries, please contact:
-
-- **Mustafa Banikhalaf**
-- **Mohammad Majdalawy**
+### **1. Clone the Repository**
+```bash
+git clone https://github.com/yourusername/DSC-Nmap-GUI.git
+cd DSC-Nmap-GUI
 
 ---
 
-## Contribution
+## **Install Python Libraries**
+Run the following command to install all required dependencies:
 
-We welcome contributions to improve this tool. To contribute:
-
-1. Fork the repository.
-2. Create a new branch for your feature or fix.
-3. Submit a pull request with detailed descriptions of the changes made.
+```bash
+pip install -r requirements.txt
 
 ---
 
-### Screenshots (Optional)
+## **Verify Nmap Installation**
+Ensure that Nmap is installed and accessible via your system's PATH. Run:
 
-Include screenshots of the tool's interface if possible.
+```bash
+nmap --version
 
 ---
 
-Enjoy using the DSC-Nmap-GUI Tool!
+## **Launch the Application**
+Start the tool with:
+
+```bash
+python Nmap_Main.py
+
