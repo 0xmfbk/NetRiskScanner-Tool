@@ -103,18 +103,6 @@ nmap --version
 python Nmap_Main.py
 ```
 
----
-
-## **Installation**
-
-Follow these steps to set up and run the DSC-Nmap-GUI Tool:
-
-### **1. Clone the Repository**
-```bash
-git clone https://github.com/yourusername/DSC-Nmap-GUI.git
-cd DSC-Nmap-GUI
-```
-
 # Usage
 
 ## 1. Launching the Tool
