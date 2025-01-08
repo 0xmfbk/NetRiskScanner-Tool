@@ -115,31 +115,6 @@ git clone https://github.com/yourusername/DSC-Nmap-GUI.git
 cd DSC-Nmap-GUI
 ```
 
----
-
-## **Installation**
-
-Follow these steps to set up and run the DSC-Nmap-GUI Tool:
-
-### **1. Clone the Repository**
-```bash
-git clone https://github.com/yourusername/DSC-Nmap-GUI.git
-cd DSC-Nmap-GUI
-```
-
----
-
-## **Installation**
-
-Follow these steps to set up and run the DSC-Nmap-GUI Tool:
-
-### **1. Clone the Repository**
-```bash
-git clone https://github.com/yourusername/DSC-Nmap-GUI.git
-cd DSC-Nmap-GUI
-```
-
-
 # Usage
 
 ## 1. Launching the Tool
@@ -163,14 +138,15 @@ Enter Target Information:
 
 ## **3. Executing the Scan**
 
-Click the Start Scan button to begin scanning.
-Monitor the scan progress with the progress bar.
-View:
-Scan Results in the left panel.
-Risk Assessment in the right panel.
+** Click the Start Scan button to begin scanning.
+** Monitor the scan progress with the progress bar.
+** View:
+**   Scan Results in the left panel.
+**   Risk Assessment in the right panel.
 
 
 ## **4. Exporting Results**
+
 Save results by navigating to:
 
 File > Export Results
@@ -182,14 +158,14 @@ File > Export Results
 
 ## Tool Structure : 
 
-1. Core Files :
+### **1. Core Files :**
 
 Nmap_Main.py: Main application file for the GUI interface.
 
 ```utils/validator.py```: Validates target inputs like IP addresses, port ranges, and MAC spoofing.
 ```utils/nmap_runner.py```: Builds and executes Nmap commands.
 
-3. Requirements
+### **3. Requirements**
 
 ```requirements.txt```: Contains all necessary Python dependencies.
 
