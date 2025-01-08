@@ -80,3 +80,117 @@ Follow these steps to set up and run the DSC-Nmap-GUI Tool:
 ```bash
 git clone https://github.com/yourusername/DSC-Nmap-GUI.git
 cd DSC-Nmap-GUI
+```
+
+---
+
+### **2. Install Python Libraries**
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+### **3. Verify Nmap Installation**
+```bash
+nmap --version
+```
+
+---
+
+### **4. Launch the Application**
+```bash
+python Nmap_Main.py
+```
+
+---
+
+## **Installation**
+
+Follow these steps to set up and run the DSC-Nmap-GUI Tool:
+
+### **1. Clone the Repository**
+```bash
+git clone https://github.com/yourusername/DSC-Nmap-GUI.git
+cd DSC-Nmap-GUI
+```
+
+---
+
+## **Installation**
+
+Follow these steps to set up and run the DSC-Nmap-GUI Tool:
+
+### **1. Clone the Repository**
+```bash
+git clone https://github.com/yourusername/DSC-Nmap-GUI.git
+cd DSC-Nmap-GUI
+```
+
+---
+
+## **Installation**
+
+Follow these steps to set up and run the DSC-Nmap-GUI Tool:
+
+### **1. Clone the Repository**
+```bash
+git clone https://github.com/yourusername/DSC-Nmap-GUI.git
+cd DSC-Nmap-GUI
+```
+
+
+# Usage
+
+## 1. Launching the Tool
+
+Run the tool with the command:
+```bash
+python Nmap_Main.py
+```
+
+## **2. Configuring Scans**
+
+Enter Target Information:
+
+** Specify the target IP address, domain name, or CIDR range in the Target field.
+** Optionally, specify a port range (e.g., 20-80) and spoof MAC address.
+** Select Scan Type:
+** Choose from the available scan types (e.g., SYN Scan, TCP Connect, UDP Scan) in the dropdown menu.
+** Enable Advanced Options:
+** Enable features like OS detection, service scan, verbose output, or disable ping.
+
+
+## **3. Executing the Scan**
+
+Click the Start Scan button to begin scanning.
+Monitor the scan progress with the progress bar.
+View:
+Scan Results in the left panel.
+Risk Assessment in the right panel.
+
+
+## **4. Exporting Results**
+Save results by navigating to:
+
+File > Export Results
+
+## Export options:
+
+.txt (plaintext format)
+.json (structured format)
+
+## Tool Structure : 
+
+1. Core Files :
+
+Nmap_Main.py: Main application file for the GUI interface.
+
+```utils/validator.py```: Validates target inputs like IP addresses, port ranges, and MAC spoofing.
+```utils/nmap_runner.py```: Builds and executes Nmap commands.
+
+3. Requirements
+
+```requirements.txt```: Contains all necessary Python dependencies.
+
+
