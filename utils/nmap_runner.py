@@ -28,60 +28,24 @@ class NmapRunner:
             list: List of command arguments for subprocess.
         """
         base_command = ["nmap"]
-
-        # Adding scan type
-        scan_type = options.get("scan_type")
-        if scan_type:
-            base_command.append(scan_type.split(": ")[1])  # Extract the actual command part
-
-        # Adding port range
+        if options.get("scan_type"):
+            base_command.append(options["scan_type"].split(": ")[1])
         if port_range:
             base_command.append(f"-p{port_range}")
-
-        # Adding service detection
         if options.get("service_scan"):
             base_command.append("-sV")
-
-        # Adding OS detection
         if options.get("os_detection"):
             base_command.append("-O")
-
-        # Adding aggressive scan
         if options.get("aggressive_scan"):
             base_command.append("-A")
-
-        # Adding verbose output
         if options.get("verbose"):
             base_command.append("-v")
-
-        # Adding custom script
-        script = options.get("script")
-        if script:
-            base_command.append(f"--script={script}")
-
-        # Adding no ping option
         if options.get("no_ping"):
             base_command.append("-Pn")
-
-        # Adding reason option
-        if options.get("reason"):
-            base_command.append("--reason")
-
-        # Adding fragmented packet scan option
-        if options.get("Fragmented Packet Scan"):
-            base_command.append("-f")
-
-        # Adding timing template
-        timing_template = options.get("timing_template")
-        if timing_template:
-            base_command.append(timing_template.split(" ")[0])  # Extract T0-T5
-
-        # Validate and append target
         if target:
             base_command.append(target)
         else:
             raise ValueError("Target cannot be empty.")
-
         return base_command
 
     def run_scan(self, command):
@@ -93,70 +57,38 @@ class NmapRunner:
         try:
             self.update_result_callback(f"Starting scan: {' '.join(command)}")
             self.scan_process = subprocess.Popen(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
-
-            scan_results = []
-            # Stream output line by line
             for line in self.scan_process.stdout:
                 if self.stop_event.is_set():
-                    self.scan_process.terminate()
+                    self.terminate_scan_process()
                     self.update_result_callback("Scan stopped by user.")
                     return
-                scan_results.append(line.strip())
                 self.update_result_callback(line.strip())
-
-            # Capture any errors
-            for error_line in self.scan_process.stderr:
-                self.update_result_callback(f"Error: {error_line.strip()}")
-
             self.scan_process.wait()
-
-            # Perform risk assessment on scan results
-            if not self.stop_event.is_set() and self.update_risk_callback:
-                risk_report = self.perform_risk_assessment(scan_results)
-                self.update_risk_callback(risk_report)
-
             if not self.stop_event.is_set():
                 self.update_result_callback("Scan completed successfully.")
-        except FileNotFoundError:
-            self.update_result_callback("Error: Nmap is not installed or not available in the PATH.")
-        except ValueError as e:
-            self.update_result_callback(f"Invalid scan parameters: {e}")
         except Exception as e:
-            self.update_result_callback(f"Unexpected error during scan: {str(e)}")
+            self.update_result_callback(f"Error: {str(e)}")
         finally:
-            self.scan_process = None
-            self.stop_event.clear()  # Reset stop event for the next scan
+            self.cleanup_process()
 
-    def perform_risk_assessment(self, scan_results):
-        """
-        Analyzes the scan results and generates a risk assessment report.
-        Args:
-            scan_results (list): List of scan result lines.
-        Returns:
-            str: Risk assessment report in string format.
-        """
-        open_ports = []
-        vulnerabilities = []
+    def terminate_scan_process(self):
+        """Forcefully terminate the scan subprocess."""
+        if self.scan_process:
+            try:
+                self.scan_process.terminate()  # Attempt graceful termination
+                self.scan_process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                self.scan_process.kill()  # Force kill if not terminated
+            finally:
+                self.scan_process = None
+                self.stop_event.clear()
 
-        # Parse results to identify risks
-        for line in scan_results:
-            if "open" in line:  # Look for open ports
-                open_ports.append(line)
-            if "vulnerable" in line or "CVE" in line:  # Look for vulnerability mentions
-                vulnerabilities.append(line)
-
-        # Compile risk report
-        risk_report = {
-            "Open Ports": open_ports,
-            "Potential Vulnerabilities": vulnerabilities
-        }
-
-        return json.dumps(risk_report, indent=4)
+    def cleanup_process(self):
+        """Clean up the scan process and reset the stop event."""
+        self.scan_process = None
+        self.stop_event.clear()
 
     def start_scan(self, target, port_range, options):
         """
@@ -169,21 +101,10 @@ class NmapRunner:
         if self.scan_thread and self.scan_thread.is_alive():
             self.update_result_callback("A scan is already in progress. Please wait.")
             return
-
-        try:
-            # Build the Nmap command
-            command = self.build_nmap_command(target, port_range, options)
-
-            # Reset stop event
-            self.stop_event.clear()
-
-            # Start the scan in a separate thread
-            self.scan_thread = threading.Thread(target=self.run_scan, args=(command,), daemon=True)
-            self.scan_thread.start()
-        except ValueError as e:
-            self.update_result_callback(f"Error starting scan: {e}")
-        except Exception as e:
-            self.update_result_callback(f"Unexpected error starting scan: {str(e)}")
+        command = self.build_nmap_command(target, port_range, options)
+        self.stop_event.clear()
+        self.scan_thread = threading.Thread(target=self.run_scan, args=(command,), daemon=True)
+        self.scan_thread.start()
 
     def stop_scan(self):
         """
@@ -191,10 +112,6 @@ class NmapRunner:
         """
         if self.scan_process and self.scan_process.poll() is None:
             self.stop_event.set()
-            try:
-                self.scan_process.terminate()
-                self.update_result_callback("Scan stopped immediately.")
-            except Exception as e:
-                self.update_result_callback(f"Error stopping scan: {str(e)}")
+            self.terminate_scan_process()
         else:
             self.update_result_callback("No active scan to stop.")
