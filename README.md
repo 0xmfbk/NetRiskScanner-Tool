@@ -142,9 +142,9 @@ File > Export Results
 ### **1. Core Files :**
 
 - Nmap_Main.py: Main application file for the GUI interface.
-
-  - ```utils/validator.py```: Validates target inputs like IP addresses, port ranges, and MAC spoofing.
-  - ```utils/nmap_runner.py```: Builds and executes Nmap commands.
+- utils: helper funtions for Tool.
+  - ```validator.py```: Validates target inputs like IP addresses, port ranges, and MAC spoofing.
+  - ```nmap_runner.py```: Builds and executes Nmap commands.
 
 ### **3. Requirements**
 
