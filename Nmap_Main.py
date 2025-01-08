@@ -206,7 +206,7 @@ class NmapGUI:
         self.risk_text.pack(side=LEFT, fill=BOTH, expand=True, padx=5)
 
         risk_scrollbar = ttk.Scrollbar(risk_frame, orient=tk.VERTICAL, command=self.risk_text.yview)
-        self.risk_text.config(yscrollcommand=risk_scrollbar.set)
+        self.risk_text.config(yscrollcommand=results_scrollbar.set)
         risk_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
     def create_progress_bar(self, parent):
@@ -343,6 +343,8 @@ class NmapGUI:
     def stop_scan(self):
         """Stop the current scan."""
         self.stop_event.set()
+        if self.process:
+            self.process.terminate()
         self.update_status("Stopping scan...")
 
     def show_about(self):
