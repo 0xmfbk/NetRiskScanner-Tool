@@ -102,11 +102,6 @@ def is_valid_target(target):
 
     return expanded_targets
 
-def is_valid_ip_spoof(ip):
-    """Validate the spoofed IP address format."""
-    ip_regex = r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$'
-    return re.match(ip_regex, ip)
-
 def is_valid_mac_spoof(mac):
     """Validate the spoofed MAC address format."""
     mac_regex = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
