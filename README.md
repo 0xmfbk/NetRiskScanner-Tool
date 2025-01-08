@@ -134,17 +134,17 @@ File > Export Results
 
 ## Export options:
 
-.txt (plaintext format)
-.json (structured format)
+- .txt (plaintext format)
+- .json (structured format)
 
 ## Tool Structure : 
 
 ### **1. Core Files :**
 
-Nmap_Main.py: Main application file for the GUI interface.
+- Nmap_Main.py: Main application file for the GUI interface.
 
-```utils/validator.py```: Validates target inputs like IP addresses, port ranges, and MAC spoofing.
-```utils/nmap_runner.py```: Builds and executes Nmap commands.
+  - ```utils/validator.py```: Validates target inputs like IP addresses, port ranges, and MAC spoofing.
+  - ```utils/nmap_runner.py```: Builds and executes Nmap commands.
 
 ### **3. Requirements**
 
