@@ -80,28 +80,3 @@ Follow these steps to set up and run the DSC-Nmap-GUI Tool:
 ```bash
 git clone https://github.com/yourusername/DSC-Nmap-GUI.git
 cd DSC-Nmap-GUI
-
----
-
-## **Install Python Libraries**
-Run the following command to install all required dependencies:
-
-```bash
-pip install -r requirements.txt
-
----
-
-## **Verify Nmap Installation**
-Ensure that Nmap is installed and accessible via your system's PATH. Run:
-
-```bash
-nmap --version
-
----
-
-## **Launch the Application**
-Start the tool with:
-
-```bash
-python Nmap_Main.py
-
