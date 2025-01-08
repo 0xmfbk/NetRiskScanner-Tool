@@ -7,7 +7,6 @@ import subprocess
 import threading
 from queue import Queue
 import tkinter as tk  # Explicit import for tkinter widgets like Text
-import time  # For simulating progress updates
 
 
 class NmapGUI:
@@ -171,10 +170,10 @@ class NmapGUI:
         result_frame = ttk.Labelframe(self.root, text="Scan Results", padding=10, bootstyle=PRIMARY)
         result_frame.pack(padx=10, pady=10, fill=BOTH, expand=True)
 
-        self.result_text = tk.Text(result_frame, wrap="word", state="disabled", height=20, width=40, bg="#f9f9f9", fg="#333333")
+        self.result_text = ttk.Text(result_frame, wrap="word", state="disabled", height=20, width=40, bg="#f9f9f9", fg="#333333")
         self.result_text.pack(side=LEFT, padx=5, pady=5, fill=BOTH, expand=True)
 
-        self.error_text = tk.Text(result_frame, wrap="word", state="disabled", height=20, width=40, bg="#f9f9f9", fg="red")
+        self.error_text = ttk.Text(result_frame, wrap="word", state="disabled", height=20, width=40, bg="#f9f9f9", fg="red")
         self.error_text.pack(side=LEFT, padx=5, pady=5, fill=BOTH, expand=True)
 
     def create_progress_bar(self):
@@ -327,3 +326,4 @@ class NmapGUI:
 if __name__ == "__main__":
     app = NmapGUI()
     app.root.mainloop()
+
