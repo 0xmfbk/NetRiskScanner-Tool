@@ -6,30 +6,35 @@ from utils.nmap_runner import NmapRunner
 import subprocess
 import threading
 from queue import Queue
-import tkinter as tk  # Explicit import for tkinter widgets like Text
+import tkinter as tk
+import json
+import re
 
 
 class NmapGUI:
     def __init__(self):
-        self.root = ttk.Window(themename="cyborg")  # Use ttkbootstrap's theme
+        self.root = ttk.Window(themename="cyborg")  # Default theme
         self.root.title("DSC-Nmap-GUI")
-        self.root.geometry("900x700")
+        self.root.geometry("1200x700")  # Adjusted for side-by-side display
+        self.style = ttk.Style()
 
         # Initialize variables
-        self.nmap_runner = None  # Placeholder for NmapRunner instance
         self.stop_event = threading.Event()
-
-        self.progress_value = ttk.IntVar(value=0)  # Initialize progress bar value
+        self.progress_value = ttk.IntVar(value=0)
         self.status_message = ttk.StringVar(value="Ready")
-
         self.result_queue = Queue()
+        self.risk_queue = Queue()
+        self.process = None  # Track subprocess for pause/resume
 
-        # Create the UI
+        # Define enqueue_result before initializing NmapRunner
+        self.enqueue_result = self.define_enqueue_result()
+
+        # Initialize NmapRunner
+        self.nmap_runner = NmapRunner(self.enqueue_result)
+
+        # Create UI
         self.create_menu()
         self.create_widgets()
-
-        # Initialize NmapRunner (after defining enqueue_result)
-        self.nmap_runner = NmapRunner(self.enqueue_result)
 
         # Start result updater
         self.update_result_threadsafe()
@@ -37,8 +42,18 @@ class NmapGUI:
         # Handle window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+    def define_enqueue_result(self):
+        """Define the enqueue_result function."""
+        def enqueue_result(result_line, for_risk=False):
+            """Add result lines to the appropriate queue for real-time updates."""
+            if for_risk:
+                self.risk_queue.put(result_line)
+            else:
+                self.result_queue.put(result_line)
+        return enqueue_result
+
     def create_menu(self):
-        """Create the menu bar with file and help options."""
+        """Create the menu bar with file, theme, and help options."""
         menu_bar = ttk.Menu(self.root)
 
         # File Menu
@@ -48,6 +63,12 @@ class NmapGUI:
         file_menu.add_command(label="Exit", command=self.on_closing)
         menu_bar.add_cascade(label="File", menu=file_menu)
 
+        # Theme Menu
+        theme_menu = ttk.Menu(menu_bar, tearoff=0)
+        theme_menu.add_command(label="Switch to Dark Theme", command=lambda: self.switch_theme("cyborg"))
+        theme_menu.add_command(label="Switch to Light Theme", command=lambda: self.switch_theme("united"))
+        menu_bar.add_cascade(label="Theme", menu=theme_menu)
+
         # Help Menu
         help_menu = ttk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label="About", command=self.show_about)
@@ -55,18 +76,30 @@ class NmapGUI:
 
         self.root.config(menu=menu_bar)
 
+    def switch_theme(self, theme_name):
+        """Switch between light and dark themes."""
+        self.root.style.theme_use(theme_name)
+
     def create_widgets(self):
         """Create all widgets and input fields."""
-        self.create_target_input()
-        self.create_scan_options()
-        self.create_scan_buttons()
-        self.create_result_display()
-        self.create_progress_bar()
-        self.create_status_bar()
+        self.create_main_layout()
 
-    def create_target_input(self):
+    def create_main_layout(self):
+        """Create the main layout with sections."""
+        main_frame = ttk.Frame(self.root)
+        main_frame.pack(fill=BOTH, expand=True)
+
+        # Create Widgets
+        self.create_target_input(main_frame)
+        self.create_scan_options(main_frame)
+        self.create_scan_buttons(main_frame)
+        self.create_split_display(main_frame)
+        self.create_progress_bar(main_frame)
+        self.create_status_bar(main_frame)
+
+    def create_target_input(self, parent):
         """Create the target input fields for IP/domain and port range."""
-        target_frame = ttk.Labelframe(self.root, text="Target Information", padding=10, bootstyle=PRIMARY)
+        target_frame = ttk.Labelframe(parent, text="Target Information", padding=10, bootstyle=PRIMARY)
         target_frame.pack(pady=10, fill=X, padx=10)
 
         self.add_labeled_entry(target_frame, "Target:", 50, self.validate_target, "target_entry")
@@ -93,133 +126,107 @@ class NmapGUI:
         else:
             self.target_feedback.config(text="")
 
-    def create_scan_options(self):
-        """Create the scan type and advanced options input fields."""
-        options_frame = ttk.Labelframe(self.root, text="Scan Options", padding=10, bootstyle=PRIMARY)
+    def create_scan_options(self, parent):
+        """Create scan type and advanced options in a single frame."""
+        options_frame = ttk.Labelframe(parent, text="Options", padding=10, bootstyle=PRIMARY)
         options_frame.pack(pady=10, fill=X, padx=10)
 
-        self.create_scan_type_options(options_frame)
-        self.create_service_detection_options(options_frame)
-        self.create_advanced_options(options_frame)
-
-    def create_scan_type_options(self, parent):
-        """Create dropdowns for selecting scan types."""
-        scan_type_frame = ttk.Labelframe(parent, text="Scan Type", padding=10)
-        scan_type_frame.pack(fill=X, padx=5, pady=5)
-
         self.scan_type = ttk.StringVar()
-        basic_scan_types = ["-sn", "-sS", "-sT", "-sU", "-sN", "-sF", "-sX"]
-        advanced_scan_types = ["-sA", "-sW", "-sM", "-sC", "-sI", "-sR", "-sP"]
-
-        self.add_labeled_combobox(scan_type_frame, "Basic Scan Type:", basic_scan_types, "scan_type")
-        self.add_labeled_combobox(scan_type_frame, "Advanced Scan Type:", advanced_scan_types, "advanced_scan_type")
-
-    def create_service_detection_options(self, parent):
-        """Create checkboxes for service detection options."""
-        service_frame = ttk.Labelframe(parent, text="Service Detection", padding=10)
-        service_frame.pack(fill=X, padx=5, pady=5)
+        scan_type_combobox = ttk.Combobox(
+            options_frame,
+            textvariable=self.scan_type,
+            values=[
+                "Ping Scan : -sn",
+                "SYN Scan : -sS",
+                "TCP Connect Scan : -sT",
+                "UDP Scan : -sU",
+                "Null Scan : -sN",
+                "FIN Scan : -sF",
+                "Xmas Scan : -sX",
+                "ACK Scan : -sA",
+                "Window Scan : -sW",
+                "IP Protocol Scan : -sO"
+            ],
+            width=40,
+        )
+        scan_type_combobox.pack(side=LEFT, padx=5)
 
         self.os_detection = ttk.BooleanVar()
         self.service_scan = ttk.BooleanVar()
-
-        self.add_checkbox(service_frame, "OS Detection", self.os_detection)
-        self.add_checkbox(service_frame, "Service Scan", self.service_scan)
-
-    def create_advanced_options(self, parent):
-        """Create advanced options like verbose, aggressive scan, etc."""
-        advanced_options_frame = ttk.Labelframe(parent, text="Advanced Options", padding=10)
-        advanced_options_frame.pack(fill=X, padx=5, pady=5)
-
         self.verbose = ttk.BooleanVar()
         self.aggressive_scan = ttk.BooleanVar()
         self.no_ping_option = ttk.BooleanVar()
         self.reason_option = ttk.BooleanVar()
 
-        self.add_checkbox(advanced_options_frame, "Verbose Output", self.verbose)
-        self.add_checkbox(advanced_options_frame, "Aggressive Scan", self.aggressive_scan)
-        self.add_checkbox(advanced_options_frame, "No Ping", self.no_ping_option)
-        self.add_checkbox(advanced_options_frame, "Include Reason", self.reason_option)
-
-    def add_labeled_combobox(self, parent, label_text, values, attr_name):
-        """Helper method to create labeled combobox widgets."""
-        ttk.Label(parent, text=label_text).pack(side=LEFT, padx=5)
-        combobox = ttk.Combobox(parent, values=values, width=10, bootstyle=INFO)
-        combobox.pack(side=LEFT, padx=5)
-        setattr(self, attr_name, combobox)
+        self.add_checkbox(options_frame, "OS Detection", self.os_detection)
+        self.add_checkbox(options_frame, "Service Scan", self.service_scan)
+        self.add_checkbox(options_frame, "Verbose", self.verbose)
+        self.add_checkbox(options_frame, "Aggressive Scan", self.aggressive_scan)
+        self.add_checkbox(options_frame, "No Ping", self.no_ping_option)
 
     def add_checkbox(self, parent, label_text, variable):
         """Helper method to create checkbox widgets."""
         ttk.Checkbutton(parent, text=label_text, variable=variable, bootstyle=SUCCESS).pack(side=LEFT, padx=5)
 
-    def create_scan_buttons(self):
+    def create_scan_buttons(self, parent):
         """Create the buttons for starting, stopping, and clearing scans."""
-        button_frame = ttk.Frame(self.root, padding=10)
+        button_frame = ttk.Frame(parent, padding=10)
         button_frame.pack(fill=X, padx=10)
 
         self.scan_button = ttk.Button(button_frame, text="Start Scan", command=self.start_scan, bootstyle=SUCCESS)
         self.scan_button.pack(side=LEFT, padx=5)
 
-        self.stop_button = ttk.Button(button_frame, text="Stop Scan", command=self.start_scan, state=DISABLED, bootstyle=DANGER)
+        self.stop_button = ttk.Button(button_frame, text="Stop Scan", command=self.stop_scan, state=DISABLED, bootstyle=WARNING)
         self.stop_button.pack(side=LEFT, padx=5)
 
         self.clear_button = ttk.Button(button_frame, text="Clear Results", command=self.clear_results, bootstyle=INFO)
         self.clear_button.pack(side=LEFT, padx=5)
 
-    def create_result_display(self):
-        """Create the text boxes for displaying results and errors."""
-        result_frame = ttk.Labelframe(self.root, text="Scan Results", padding=10, bootstyle=PRIMARY)
-        result_frame.pack(padx=10, pady=10, fill=BOTH, expand=True)
+    def create_split_display(self, parent):
+        """Create split display: left for scan results, right for risk assessment."""
+        display_frame = ttk.Frame(parent)
+        display_frame.pack(fill=BOTH, expand=True, padx=10, pady=10)
 
-        self.result_text = ttk.Text(result_frame, wrap="word", state="disabled", height=20, width=40, bg="#f9f9f9", fg="#333333")
-        self.result_text.pack(side=LEFT, padx=5, pady=5, fill=BOTH, expand=True)
+        # Left: Scan Results
+        results_frame = ttk.Labelframe(display_frame, text="Scan Results", padding=10, bootstyle=PRIMARY)
+        results_frame.pack(side=LEFT, fill=BOTH, expand=True, padx=(0, 5))
 
-        self.error_text = ttk.Text(result_frame, wrap="word", state="disabled", height=20, width=40, bg="#f9f9f9", fg="red")
-        self.error_text.pack(side=LEFT, padx=5, pady=5, fill=BOTH, expand=True)
+        self.result_text = ttk.Text(results_frame, wrap="word", state="disabled", height=20, width=50)
+        self.result_text.pack(side=LEFT, fill=BOTH, expand=True, padx=5)
 
-    def create_progress_bar(self):
-        """Create the progress bar to show scan progress."""
-        progress_frame = ttk.Labelframe(self.root, text="Scan Progress", padding=10, bootstyle=PRIMARY)
+        results_scrollbar = ttk.Scrollbar(results_frame, orient=tk.VERTICAL, command=self.result_text.yview)
+        self.result_text.config(yscrollcommand=results_scrollbar.set)
+        results_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Right: Risk Assessment
+        risk_frame = ttk.Labelframe(display_frame, text="Risk Assessment", padding=10, bootstyle=WARNING)
+        risk_frame.pack(side=LEFT, fill=BOTH, expand=True, padx=(5, 0))
+
+        self.risk_text = ttk.Text(risk_frame, wrap="word", state="disabled", height=20, width=50)
+        self.risk_text.pack(side=LEFT, fill=BOTH, expand=True, padx=5)
+
+        risk_scrollbar = ttk.Scrollbar(risk_frame, orient=tk.VERTICAL, command=self.risk_text.yview)
+        self.risk_text.config(yscrollcommand=risk_scrollbar.set)
+        risk_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    def create_progress_bar(self, parent):
+        """Create the progress bar with animation."""
+        progress_frame = ttk.Labelframe(parent, text="Scan Progress", padding=10, bootstyle=PRIMARY)
         progress_frame.pack(fill=X, padx=10, pady=5)
 
-        self.progress_bar = ttk.Progressbar(progress_frame, variable=self.progress_value, maximum=100, bootstyle=INFO)
+        self.progress_bar = ttk.Progressbar(progress_frame, variable=self.progress_value, maximum=100, bootstyle=INFO, mode="determinate")
         self.progress_bar.pack(fill=X, expand=True)
 
-    def create_status_bar(self):
+    def create_status_bar(self, parent):
         """Create the status bar at the bottom of the window."""
-        status_frame = ttk.Frame(self.root, padding=5)
+        status_frame = ttk.Frame(parent, padding=5)
         status_frame.pack(fill=X, side=BOTTOM)
 
         self.status_label = ttk.Label(status_frame, textvariable=self.status_message, anchor=W, bootstyle=SECONDARY)
         self.status_label.pack(fill=X)
 
-    def update_status(self, message):
-        """Update the status bar message."""
-        self.status_message.set(message)
-
-    def update_progress(self, progress_value):
-        """Update the progress bar value."""
-        self.progress_value.set(progress_value)
-        self.progress_bar.update_idletasks()
-
-    def enqueue_result(self, result_line):
-        """Add result lines to the queue for thread-safe updates."""
-        self.result_queue.put(result_line)
-
-    def update_result_threadsafe(self):
-        """Fetch and display results from the queue."""
-        try:
-            while not self.result_queue.empty():
-                line = self.result_queue.get_nowait()
-                self.result_text.config(state="normal")
-                self.result_text.insert(tk.END, line + "\n")
-                self.result_text.config(state="disabled")
-        except Exception as e:
-            print(f"Error updating result: {e}")
-        finally:
-            self.root.after(100, self.update_result_threadsafe)
-
     def start_scan(self):
-        """Start the Nmap scan with the provided options."""
+        """Start the Nmap scan."""
         target = self.target_entry.get()
         port_range = self.port_range_entry.get()
         spoof_mac = self.spoof_mac.get()
@@ -229,10 +236,9 @@ class NmapGUI:
             "os_detection": self.os_detection.get(),
             "service_scan": self.service_scan.get(),
             "verbose": self.verbose.get(),
-            "scan_type": self.scan_type.get() or self.advanced_scan_type.get(),
+            "scan_type": self.scan_type.get(),
             "aggressive_scan": self.aggressive_scan.get(),
             "no_ping": self.no_ping_option.get(),
-            "reason": self.reason_option.get(),
         }
 
         if not self.validate_inputs(target, port_range, spoof_mac):
@@ -253,7 +259,7 @@ class NmapGUI:
             messagebox.showerror("Error", "Invalid target. Please enter a valid IP or domain.")
             return False
         if port_range and not is_valid_port_range(port_range):
-            messagebox.showerror("Error", "Invalid port range. Enter a valid range (e.g., 20-80).")
+            messagebox.showerror("Error", "Invalid port range. Enter a valid range (SYN Scan : -sSe.g., 20-80).")
             return False
         if spoof_mac and not is_valid_mac_spoof(spoof_mac):
             messagebox.showerror("Error", "Invalid MAC address format.")
@@ -264,21 +270,21 @@ class NmapGUI:
         """Run the Nmap scan command and update progress."""
         try:
             nmap_command = self.nmap_runner.build_nmap_command(target, port_range, options)
-            process = subprocess.Popen(nmap_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            total_lines = 100  # Placeholder for progress calculation
+            self.process = subprocess.Popen(nmap_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-            for i, line in enumerate(process.stdout):
+            for line in self.process.stdout:
                 if self.stop_event.is_set():
-                    process.terminate()
+                    self.process.terminate()
                     self.update_status("Scan stopped.")
                     break
 
-                # Simulate progress (update based on lines read)
-                self.update_progress(int((i / total_lines) * 100))
+                # Add results to the queue for display
                 self.enqueue_result(line.strip())
 
-            process.wait()
-            self.update_progress(100)  # Set progress to complete
+            for error_line in self.process.stderr:
+                self.enqueue_result(f"Error: {error_line.strip()}")
+
+            self.process.wait()
             self.update_status("Scan Completed.")
         except Exception as e:
             self.update_status(f"Error: {str(e)}")
@@ -293,25 +299,51 @@ class NmapGUI:
         self.result_text.delete("1.0", tk.END)
         self.result_text.config(state="disabled")
 
-        self.error_text.config(state="normal")
-        self.error_text.delete("1.0", tk.END)
-        self.error_text.config(state="disabled")
+        self.risk_text.config(state="normal")
+        self.risk_text.delete("1.0", tk.END)
+        self.risk_text.config(state="disabled")
 
     def export_results(self):
-        """Export scan results to a file."""
-        file_path = filedialog.asksaveasfilename(defaultextension=".txt",
-                                                 filetypes=[("Text files", "*.txt"), ("JSON files", "*.json")])
+        """Export scan results and risk assessments to a file."""
+        file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
         if file_path:
             try:
                 with open(file_path, 'w') as file:
-                    if file_path.endswith('.json'):
-                        import json
-                        file.write(json.dumps({"results": self.result_text.get("1.0", tk.END).strip()}, indent=4))
-                    else:
-                        file.write(self.result_text.get("1.0", tk.END).strip())
+                    # Save results
+                    results = self.result_text.get("1.0", tk.END).strip()
+                    file.write(results)
                 messagebox.showinfo("Success", "Results exported successfully!")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to save the file: {str(e)}")
+
+    def update_result_threadsafe(self):
+        """Fetch and display results from the queue."""
+        try:
+            while not self.result_queue.empty():
+                line = self.result_queue.get_nowait()
+                self.result_text.config(state="normal")
+                self.result_text.insert(tk.END, line + "\n")
+                self.result_text.config(state="disabled")
+
+            while not self.risk_queue.empty():
+                risk = self.risk_queue.get_nowait()
+                self.risk_text.config(state="normal")
+                self.risk_text.insert(tk.END, risk + "\n")
+                self.risk_text.config(state="disabled")
+        except Exception as e:
+            print(f"Error updating result: {e}")
+        finally:
+            self.root.after(100, self.update_result_threadsafe)
+
+    def update_status(self, message):
+        """Update the status bar message."""
+        self.status_message.set(message)
+        self.root.update_idletasks()
+
+    def stop_scan(self):
+        """Stop the current scan."""
+        self.stop_event.set()
+        self.update_status("Stopping scan...")
 
     def show_about(self):
         """Show information about the application."""
@@ -326,4 +358,3 @@ class NmapGUI:
 if __name__ == "__main__":
     app = NmapGUI()
     app.root.mainloop()
-
