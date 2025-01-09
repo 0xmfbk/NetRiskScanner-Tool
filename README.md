@@ -38,8 +38,25 @@ The **NetRiskScanner** is an advanced yet user-friendly graphical user interface
 ### **3. AI-Powered Risk Assessment**
 - **Automated Analysis:** Uses AI models to analyze scan results and detect potential vulnerabilities.
 - **Threat Prioritization:** Assigns risk scores to vulnerabilities to help users focus on critical issues.
-- **Insights and Recommendations:** Provides actionable steps to mitigate identified risks based on industry best practices.
+- **Insights and Recommendations:**
+  - Provides actionable steps to mitigate identified risks based on industry best practices.
+  - Suggests patches, configuration changes, or system hardening techniques.
 - **Continuous Improvement:** Learns from previous scans to enhance future risk assessments.
+
+#### **How Risk Assessment Works**
+1. **Scan Results Analysis:**
+   - Parses the raw Nmap scan output to identify open ports, running services, and their versions.
+   - Matches findings with known vulnerabilities from a vulnerability database (e.g., CVE database).
+2. **Risk Scoring:**
+   - Assigns a risk score to each finding based on its severity, exploitability, and potential impact.
+   - Scores are categorized as Low, Medium, High, or Critical.
+3. **Mitigation Recommendations:**
+   - For each identified vulnerability, the tool provides mitigation strategies such as:
+     - Updating or patching software.
+     - Closing unnecessary open ports.
+     - Restricting access using firewall rules.
+     - Disabling or reconfiguring vulnerable services.
+   - Provides links to official patches or detailed guides for resolution where applicable.
 
 ---
 
