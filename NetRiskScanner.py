@@ -2,20 +2,21 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from tkinter import filedialog, messagebox
 from utils.validator import is_valid_target, is_valid_port_range, is_valid_mac_spoof
-from utils.nmap_runner import NmapRunner
+from utils.Runner_Tool import Runner_Tool
 import subprocess
 import threading
 from queue import Queue
 import tkinter as tk
 import json
 import re
+import webbrowser
 
 
-class NmapGUI:
+class NetRiskScanner:
     def __init__(self):
-        self.root = ttk.Window(themename="cyborg")  # Default theme
-        self.root.title("DSC-Nmap-GUI")
-        self.root.geometry("1200x700")  # Adjusted for side-by-side display
+        self.root = ttk.Window(themename="cyborg")
+        self.root.title("NetRiskScanner Tool")
+        self.root.geometry("1200x700")
         self.style = ttk.Style()
 
         # Initialize variables
@@ -24,13 +25,14 @@ class NmapGUI:
         self.status_message = ttk.StringVar(value="Ready")
         self.result_queue = Queue()
         self.risk_queue = Queue()
-        self.process = None  # Track subprocess for pause/resume
+        self.process = None
+        self.total_lines = 100
 
-        # Define enqueue_result before initializing NmapRunner
+        # Define enqueue_result before initializing Runner_Tool
         self.enqueue_result = self.define_enqueue_result()
 
-        # Initialize NmapRunner
-        self.nmap_runner = NmapRunner(self.enqueue_result)
+        # Initialize Runner_Tool
+        self.runner_tool = Runner_Tool(self.enqueue_result)
 
         # Create UI
         self.create_menu()
@@ -45,7 +47,6 @@ class NmapGUI:
     def define_enqueue_result(self):
         """Define the enqueue_result function."""
         def enqueue_result(result_line, for_risk=False):
-            """Add result lines to the appropriate queue for real-time updates."""
             if for_risk:
                 self.risk_queue.put(result_line)
             else:
@@ -53,28 +54,40 @@ class NmapGUI:
         return enqueue_result
 
     def create_menu(self):
-        """Create the menu bar with file, theme, and help options."""
+        """Create the optimized menu bar with improved features."""
         menu_bar = ttk.Menu(self.root)
 
         # File Menu
         file_menu = ttk.Menu(menu_bar, tearoff=0)
-        file_menu.add_command(label="Export Results", command=self.export_results)
+        file_menu.add_command(label="Export Results (Ctrl+E)", command=self.export_results)
         file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.on_closing)
+        file_menu.add_command(label="Exit (Ctrl+Q)", command=self.on_closing)
         menu_bar.add_cascade(label="File", menu=file_menu)
 
         # Theme Menu
         theme_menu = ttk.Menu(menu_bar, tearoff=0)
-        theme_menu.add_command(label="Switch to Dark Theme", command=lambda: self.switch_theme("cyborg"))
-        theme_menu.add_command(label="Switch to Light Theme", command=lambda: self.switch_theme("united"))
+        theme_menu.add_command(label="Dark Mode", command=lambda: self.switch_theme("cyborg"))
+        theme_menu.add_command(label="Light Mode", command=lambda: self.switch_theme("united"))
         menu_bar.add_cascade(label="Theme", menu=theme_menu)
 
         # Help Menu
         help_menu = ttk.Menu(menu_bar, tearoff=0)
+        help_menu.add_command(label="Documentation", command=self.show_documentation)
+        help_menu.add_separator()
         help_menu.add_command(label="About", command=self.show_about)
         menu_bar.add_cascade(label="Help", menu=help_menu)
 
         self.root.config(menu=menu_bar)
+        self.root.bind("<Control-e>", lambda event: self.export_results())
+        self.root.bind("<Control-q>", lambda event: self.on_closing())
+
+    def show_documentation(self):
+        """Open the documentation link in the user's web browser."""
+        documentation_url = "https://github.com/MustafaFBK/DSC-Nmap-Copy/blob/c822c607fa04429b52b5fd6ef0b7ab9bb716b3a5/NetRiskScanner%20Document.pdf"
+        try:
+            webbrowser.open(documentation_url)
+        except Exception as e:
+            messagebox.showerror("Error", f"Unable to open documentation: {e}")
 
     def switch_theme(self, theme_name):
         """Switch between light and dark themes."""
@@ -85,11 +98,9 @@ class NmapGUI:
         self.create_main_layout()
 
     def create_main_layout(self):
-        """Create the main layout with sections."""
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill=BOTH, expand=True)
 
-        # Create Widgets
         self.create_target_input(main_frame)
         self.create_scan_options(main_frame)
         self.create_scan_buttons(main_frame)
@@ -106,7 +117,7 @@ class NmapGUI:
         self.target_feedback = ttk.Label(target_frame, text="", bootstyle="danger")
         self.target_feedback.pack(side=LEFT, padx=5)
 
-        self.add_labeled_entry(target_frame, "Port, Ports or Range:", 15, None, "port_range_entry")
+        self.add_labeled_entry(target_frame, "Port Range:", 15, None, "port_range_entry")
         self.add_labeled_entry(target_frame, "Spoof MAC:", 15, None, "spoof_mac")
 
     def add_labeled_entry(self, parent, label_text, width, validation, attr_name):
@@ -225,8 +236,19 @@ class NmapGUI:
         self.status_label = ttk.Label(status_frame, textvariable=self.status_message, anchor=W, bootstyle=SECONDARY)
         self.status_label.pack(fill=X)
 
+    def update_progress(self, current_line):
+        """Update the progress bar value dynamically."""
+        # Dynamically set total_lines based on actual scan output if possible
+        if current_line > self.total_lines:
+            self.total_lines = current_line  # Adjust total lines dynamically
+
+        if self.total_lines > 0:
+            progress = min(int((current_line / self.total_lines) * 100), 100)
+            self.progress_value.set(progress)
+
+
     def start_scan(self):
-        """Start the Nmap scan."""
+        """Start the NetRiskScanner scan."""
         target = self.target_entry.get()
         port_range = self.port_range_entry.get()
         spoof_mac = self.spoof_mac.get()
@@ -251,7 +273,7 @@ class NmapGUI:
         self.progress_value.set(0)
 
         self.stop_event.clear()
-        threading.Thread(target=self.run_nmap_scan, args=(target, port_range, options), daemon=True).start()
+        threading.Thread(target=self.run_NetRiskScanner_scan, args=(target, port_range, options), daemon=True).start()
 
     def validate_inputs(self, target, port_range, spoof_mac):
         """Validate inputs and show error messages if invalid."""
@@ -266,26 +288,32 @@ class NmapGUI:
             return False
         return True
 
-    def run_nmap_scan(self, target, port_range, options):
-        """Run the Nmap scan command and update progress."""
+    def run_NetRiskScanner_scan(self, target, port_range, options):
+        """Run the NetRiskScanner scan command and update progress."""
         try:
-            nmap_command = self.nmap_runner.build_nmap_command(target, port_range, options)
-            self.process = subprocess.Popen(nmap_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            command = self.runner_tool.build_command(target, port_range, options)
+            self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
+            current_line = 0
             for line in self.process.stdout:
                 if self.stop_event.is_set():
                     self.process.terminate()
                     self.update_status("Scan stopped.")
                     break
 
-                # Add results to the queue for display
+                current_line += 1
                 self.enqueue_result(line.strip())
+                self.update_progress(current_line)
 
             for error_line in self.process.stderr:
                 self.enqueue_result(f"Error: {error_line.strip()}")
 
             self.process.wait()
-            self.update_status("Scan Completed.")
+
+            # Ensure progress bar is complete on successful scan
+            if not self.stop_event.is_set():
+                self.progress_value.set(100)
+                self.update_status("Scan Completed.")
         except Exception as e:
             self.update_status(f"Error: {str(e)}")
             messagebox.showerror("Error", f"Scan failed: {str(e)}")
@@ -293,6 +321,7 @@ class NmapGUI:
             self.scan_button.config(state=NORMAL)
             self.stop_button.config(state=DISABLED)
 
+            
     def clear_results(self):
         """Clear all displayed results."""
         self.result_text.config(state="normal")
@@ -349,7 +378,7 @@ class NmapGUI:
 
     def show_about(self):
         """Show information about the application."""
-        messagebox.showinfo("About", "DSC-Nmap-GUI\nCreated by:\n- Mustafa Banikhalaf\n- Mohammad Majdalawy")
+        messagebox.showinfo("About", "NetRiskScanner Tool\nCreated by:\n- Mustafa Banikhalaf\n- Mohammad Majdalawy")
 
     def on_closing(self):
         """Handle the window closing event."""
@@ -358,5 +387,5 @@ class NmapGUI:
 
 
 if __name__ == "__main__":
-    app = NmapGUI()
+    app = NetRiskScanner()
     app.root.mainloop()
