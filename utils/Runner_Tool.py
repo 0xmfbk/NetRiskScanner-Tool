@@ -1,12 +1,11 @@
 import subprocess
 import threading
-import json
 
 
-class NmapRunner:
+class Runner_Tool:
     def __init__(self, update_result_callback, update_risk_callback=None):
         """
-        Initializes the NmapRunner class.
+        Initializes the Runner_Tool class.
         Args:
             update_result_callback (function): Callback function to handle scan results in real time.
             update_risk_callback (function): Optional callback to handle risk assessment based on scan results.
@@ -17,7 +16,7 @@ class NmapRunner:
         self.scan_process = None
         self.stop_event = threading.Event()  # Event to signal scan termination
 
-    def build_nmap_command(self, target, port_range, options):
+    def build_command(self, target, port_range, options):
         """
         Constructs the Nmap command based on the provided parameters.
         Args:
@@ -48,28 +47,44 @@ class NmapRunner:
             raise ValueError("Target cannot be empty.")
         return base_command
 
-    def run_scan(self, command):
-        """
-        Executes the Nmap scan and streams the output in real time.
-        Args:
-            command (list): List of command arguments to execute.
-        """
+    def run_scan(self, target, port_range, options):
+        """Run the scan command and update progress."""
         try:
-            self.update_result_callback(f"Starting scan: {' '.join(command)}")
+            # Build the command
+            command = self.build_command(target, port_range, options)
+            self.update_result_callback(f"Executing: {' '.join(command)}")
+
+            # Start the subprocess
             self.scan_process = subprocess.Popen(
                 command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
+
+            # Capture and process standard output
             for line in self.scan_process.stdout:
                 if self.stop_event.is_set():
-                    self.terminate_scan_process()
+                    self.scan_process.terminate()
                     self.update_result_callback("Scan stopped by user.")
                     return
+
+                # Pass each line of output to the callback
                 self.update_result_callback(line.strip())
+
+            # Capture and process standard error
+            for error_line in self.scan_process.stderr:
+                self.update_result_callback(f"Error: {error_line.strip()}")
+
+            # Wait for process to complete
             self.scan_process.wait()
+
             if not self.stop_event.is_set():
-                self.update_result_callback("Scan completed successfully.")
+                self.update_result_callback("Scan Completed Successfully.")
+                if self.update_risk_callback:
+                    self.update_risk_callback("Risk assessment initiated.")
+
+        except ValueError as ve:
+            self.update_result_callback(f"Input Error: {str(ve)}")
         except Exception as e:
-            self.update_result_callback(f"Error: {str(e)}")
+            self.update_result_callback(f"Runtime Error: {str(e)}")
         finally:
             self.cleanup_process()
 
@@ -81,14 +96,15 @@ class NmapRunner:
                 self.scan_process.wait(timeout=2)
             except subprocess.TimeoutExpired:
                 self.scan_process.kill()  # Force kill if not terminated
+                self.update_result_callback("Scan process forcefully terminated.")
             finally:
-                self.scan_process = None
-                self.stop_event.clear()
+                self.cleanup_process()
 
     def cleanup_process(self):
         """Clean up the scan process and reset the stop event."""
         self.scan_process = None
         self.stop_event.clear()
+        self.update_result_callback("Scan process cleaned up.")
 
     def start_scan(self, target, port_range, options):
         """
@@ -101,10 +117,13 @@ class NmapRunner:
         if self.scan_thread and self.scan_thread.is_alive():
             self.update_result_callback("A scan is already in progress. Please wait.")
             return
-        command = self.build_nmap_command(target, port_range, options)
+
         self.stop_event.clear()
-        self.scan_thread = threading.Thread(target=self.run_scan, args=(command,), daemon=True)
+        self.scan_thread = threading.Thread(
+            target=self.run_scan, args=(target, port_range, options), daemon=True
+        )
         self.scan_thread.start()
+        self.update_result_callback("Scan started in a separate thread.")
 
     def stop_scan(self):
         """
