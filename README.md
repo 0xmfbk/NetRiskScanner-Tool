@@ -35,9 +35,11 @@ The **NetRiskScanner** is an advanced yet user-friendly graphical user interface
 
 ---
 
-### **3. Risk Assessment**
-- Analyzes scan results to identify and highlight potential vulnerabilities.
-- Helps prioritize mitigation actions with actionable insights.
+### **3. AI-Powered Risk Assessment**
+- **Automated Analysis:** Uses AI models to analyze scan results and detect potential vulnerabilities.
+- **Threat Prioritization:** Assigns risk scores to vulnerabilities to help users focus on critical issues.
+- **Insights and Recommendations:** Provides actionable steps to mitigate identified risks based on industry best practices.
+- **Continuous Improvement:** Learns from previous scans to enhance future risk assessments.
 
 ---
 
