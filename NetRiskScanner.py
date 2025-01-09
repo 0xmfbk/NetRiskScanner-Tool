@@ -374,8 +374,11 @@ class NetRiskScanner:
         self.stop_event.set()
         if self.process:
             self.process.terminate()
-        self.update_status("Stopping scan...")
-
+        self.progress_value.set(0)  # Reset the progress bar to zero
+        self.update_status("Scan stopped.")
+        self.scan_button.config(state=NORMAL)
+        self.stop_button.config(state=DISABLED)
+        
     def show_about(self):
         """Show information about the application."""
         messagebox.showinfo("About", "NetRiskScanner Tool\nCreated by:\n- Mustafa Banikhalaf\n- Mohammad Majdalawy")
