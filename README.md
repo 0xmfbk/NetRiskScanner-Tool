@@ -1,6 +1,6 @@
-# **DSC-Nmap-GUI Tool**
+# **NetRiskScanner**
 
-The **DSC-Nmap-GUI Tool** is an advanced yet user-friendly graphical user interface built with Python using `tkinter` and `ttkbootstrap`. Designed for network professionals, ethical hackers, and IT enthusiasts, this tool provides seamless interaction with the powerful Nmap scanning utility. It simplifies complex network scanning and risk assessment processes, offering real-time results and actionable insights.
+The **NetRiskScanner** is an advanced yet user-friendly graphical user interface built with Python using `tkinter` and `ttkbootstrap`. Designed for network professionals, ethical hackers, and IT enthusiasts, this tool provides seamless interaction with the powerful Nmap scanning utility. It simplifies complex network scanning and risk assessment processes, offering real-time results and actionable insights.
 
 ---
 
@@ -74,12 +74,12 @@ Ensure the following are installed and set up on your system:
 
 ## **Installation**
 
-Follow these steps to set up and run the DSC-Nmap-GUI Tool:
+Follow these steps to set up and run the NetRiskScanner:
 
 ### **1. Clone the Repository**
 ```bash
-git clone https://github.com/yourusername/DSC-Nmap-GUI.git
-cd DSC-Nmap-GUI
+git clone https://github.com/yourusername/NetRiskScanner.git
+cd NetRiskScanner
 ```
 
 ---
@@ -137,17 +137,15 @@ File > Export Results
 - .txt (plaintext format)
 - .json (structured format)
 
-## Tool Structure : 
+## Tool Structure :
 
 ### **1. Core Files :**
 
 - Nmap_Main.py: Main application file for the GUI interface.
-- utils: helper funtions for Tool.
+- utils: helper functions for Tool.
   - ```validator.py```: Validates target inputs like IP addresses, port ranges, and MAC spoofing.
   - ```nmap_runner.py```: Builds and executes Nmap commands.
 
 ### **3. Requirements**
 
 ```requirements.txt```: Contains all necessary Python dependencies.
-
-
