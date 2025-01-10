@@ -1,3 +1,5 @@
 ttkbootstrap
-tkinter
-nmap
+google-generativeai
+requests
+validators
+tabulate
