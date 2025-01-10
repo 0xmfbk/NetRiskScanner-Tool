@@ -1,72 +1,151 @@
-# **NetRiskScanner**
+# NetRiskScanner: Features and Functionalities Explained
 
-The **NetRiskScanner** is an advanced yet user-friendly graphical user interface built with Python using `tkinter` and `ttkbootstrap`. Designed for network professionals, ethical hackers, and IT enthusiasts, this tool provides seamless interaction with the powerful Nmap scanning utility. It simplifies complex network scanning and risk assessment processes, offering real-time results and actionable insights.
-
----
-
-## **Features**
-
-### **1. Comprehensive Nmap Scanning**
-- **Supports Various Scan Types:**
-  - SYN Scan (`-sS`)
-  - TCP Connect Scan (`-sT`)
-  - Ping Scan (`-sn`)
-  - UDP Scan (`-sU`)
-  - Null Scan (`-sN`)
-  - FIN Scan (`-sF`)
-  - Xmas Scan (`-sX`)
-  - ACK Scan (`-sA`)
-  - Window Scan (`-sW`)
-  - IP Protocol Scan (`-sO`)
-- **Advanced Options:**
-  - OS detection (`-O`)
-  - Service detection (`-sV`)
-  - Aggressive scan mode (`-A`)
-  - Disable ping (`-Pn`)
-  - Verbose output (`-v`)
+The **NetRiskScanner** is an advanced Python-based network scanning and risk assessment tool. Below is a detailed explanation of all its features and functionalities:
 
 ---
 
-### **2. Real-Time Results Display**
-- **Side-by-Side Panels:**
-  - **Left Panel:** Displays live scan results in real-time.
-  - **Right Panel:** Provides a detailed risk assessment based on vulnerabilities found during the scan.
-- Progress bar for tracking scan completion.
+## 1. **Comprehensive Nmap Scanning**
+
+The NetRiskScanner leverages the Nmap utility to perform advanced network scanning. It simplifies Nmap’s powerful functionalities through a graphical user interface (GUI).
+
+### **Supported Scan Types**
+- **Ping Scan (`-sn`)**: Quickly checks whether hosts in a network are active without scanning ports.
+- **SYN Scan (`-sS`)**: Performs stealthy port scanning by sending SYN packets and analyzing responses. It does not complete the TCP handshake.
+- **TCP Connect Scan (`-sT`)**: Establishes full TCP connections to detect open ports, useful when SYN Scan isn’t available.
+- **UDP Scan (`-sU`)**: Detects open UDP ports by sending UDP packets and analyzing responses.
+- **Null Scan (`-sN`)**: Sends packets with no flags to detect closed ports.
+- **FIN Scan (`-sF`)**: Sends packets with only the FIN flag to detect closed ports.
+- **Xmas Scan (`-sX`)**: Sends packets with FIN, PSH, and URG flags set to detect closed ports.
+- **ACK Scan (`-sA`)**: Maps firewall rules by sending ACK packets.
+- **Window Scan (`-sW`)**: Explores firewalls using TCP Window size.
+- **IP Protocol Scan (`-sO`)**: Identifies supported IP protocols on a target.
+
+### **Advanced Scanning Options**
+- **OS Detection (`-O`)**: Identifies the operating system running on the target machine.
+- **Service Scan (`-sV`)**: Detects the versions of services running on open ports.
+- **Aggressive Scan (`-A`)**: Combines OS detection, service detection, and traceroute.
+- **Disable Ping (`-Pn`)**: Skips host discovery and scans all provided targets.
+- **Verbose Mode (`-v`)**: Provides detailed scan output in real-time.
+
+These options are presented in dropdown menus and checkboxes, allowing users to customize scans easily.
 
 ---
 
-### **3. AI-Powered Risk Assessment**
-- **Automated Analysis:** Uses AI models to analyze scan results and detect potential vulnerabilities.
-- **Threat Prioritization:** Assigns risk scores to vulnerabilities to help users focus on critical issues.
-- **Insights and Recommendations:**
-  - Provides actionable steps to mitigate identified risks based on industry best practices.
-  - Suggests patches, configuration changes, or system hardening techniques.
-- **Continuous Improvement:** Learns from previous scans to enhance future risk assessments.
+## 2. **Real-Time Results Display**
 
-#### **How Risk Assessment Works**
-1. **Scan Results Analysis:**
-   - Parses the raw Nmap scan output to identify open ports, running services, and their versions.
-   - Matches findings with known vulnerabilities from a vulnerability database (e.g., CVE database).
-2. **Risk Scoring:**
-   - Assigns a risk score to each finding based on its severity, exploitability, and potential impact.
-   - Scores are categorized as Low, Medium, High, or Critical.
-3. **Mitigation Recommendations:**
-   - For each identified vulnerability, the tool provides mitigation strategies such as:
-     - Updating or patching software.
-     - Closing unnecessary open ports.
-     - Restricting access using firewall rules.
-     - Disabling or reconfiguring vulnerable services.
-   - Provides links to official patches or detailed guides for resolution where applicable.
+### **Dual Panel Design**
+- **Left Panel**: Displays live scan results as they are received. This allows users to monitor scans in real-time without waiting for the entire process to complete.
+- **Right Panel**: Shows a detailed risk assessment based on the vulnerabilities identified during the scan.
+
+### **Progress Tracking**
+- **Progress Bar**: Provides a visual representation of scan progress. It updates dynamically as the scan progresses, giving users real-time feedback on the operation's status.
+- **Status Bar**: Displays text-based status updates, such as “Scanning,” “Analysis Complete,” or error messages.
 
 ---
 
-### **4. Export Options**
-- Save scan results and risk assessments to `.txt` or `.json` files for record-keeping or further analysis.
+## 3. **AI-Powered Risk Assessment**
+
+This feature uses Google’s Generative AI to analyze scan results and provide detailed risk assessments. The analysis includes:
+
+### **How It Works**
+1. **Input Parsing**:
+   - Parses the Nmap output to identify open ports, running services, and their versions.
+   - Uses vulnerability databases (e.g., CVE) to cross-reference findings.
+
+2. **Risk Levels**:
+   - Assigns severity scores to vulnerabilities (Low, Medium, High, Critical).
+   - Categorizes risks for each service and port.
+
+3. **Report Structure**:
+   - **Executive Summary**: Highlights critical risks and provides a summary of scan findings.
+   - **Identified Vulnerabilities**: Lists detailed descriptions of vulnerabilities and their impacts.
+   - **Risk Levels Table**: Organizes findings in a table format for clarity:
+     - Port
+     - Service
+     - Risk Level
+     - Description
+   - **Recommendations**:
+     - Immediate actions (e.g., applying patches, configuring firewalls).
+     - Short-term strategies (e.g., vulnerability scanning).
+     - Long-term strategies (e.g., penetration testing).
+
+4. **Dynamic Updates**:
+   - The Risk Assessment section is automatically updated when analysis is complete.
 
 ---
 
-### **5. Customizable Themes**
-- Switch between **light mode** (`united`) and **dark mode** (`cyborg`) for personalized usability.
+## 4. **Dynamic Button Management**
+
+### **State-Based Enable/Disable**
+- **Analysis Button**: Disabled until a scan is completed.
+- **Save Button**: Disabled until the Risk Assessment section contains valid data.
+- **Clear Results Button**: Clears both scan results and risk assessments and disables dependent buttons.
+
+This ensures that buttons are context-aware, reducing the chances of errors or unnecessary actions.
+
+---
+
+## 5. **Export and Save Options**
+
+### **Exporting Results**
+Users can save scan results and risk assessments to a `.txt` file for documentation and sharing.
+
+### **Saving Risk Assessments**
+- Users can save the Risk Assessment report to a `.txt` file.
+- Includes a dialog box to specify file location and name.
+
+---
+
+## 6. **User-Friendly Command Display**
+
+### **Command Builder**
+- Displays the exact Nmap command being executed based on user inputs.
+- Allows users to copy the command for use in a terminal or script.
+
+---
+
+## 7. **Error Handling and Validation**
+
+### **Input Validation**
+- Ensures that target IPs, domains, and port ranges are correctly formatted.
+- Displays error messages if inputs are invalid.
+
+### **Runtime Error Handling**
+- Catches unexpected errors during scanning or risk analysis and provides detailed error messages.
+
+---
+
+## 8. **Customizable Themes**
+
+### **Light and Dark Modes**
+- Offers two themes:
+  - **Cyborg** (Dark Mode): Ideal for low-light environments.
+  - **United** (Light Mode): Provides high visibility in bright settings.
+
+---
+
+## 9. **Core Functionalities Explained**
+
+### **Target Input Section**
+- Accepts:
+  - Single IP or domain.
+  - IP ranges (e.g., `192.168.1.1-10`).
+  - CIDR notation (e.g., `192.168.1.0/24`).
+
+### **Scan Options Section**
+- Dropdown menus and checkboxes simplify selecting scan types and advanced options.
+
+### **Split Display Section**
+- Results and risk assessments are displayed side-by-side for quick reference.
+- Scrollbars ensure all content is accessible.
+
+### **Clear Results Functionality**
+- Clears both panels and disables dependent buttons.
+- Resets the state of the application for a new scan.
+
+---
+
+This detailed breakdown covers all aspects of the NetRiskScanner’s features and functionalities. The tool’s intuitive design and advanced capabilities make it an excellent choice for network professionals and enthusiasts alike.
 
 ---
 
