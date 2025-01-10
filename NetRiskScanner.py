@@ -510,7 +510,7 @@ class NetRiskScanner:
             
     def perform_risk_analysis(self):
         """
-        Perform risk analysis using AI with retries, backoff, and progress bar simulation.
+        Perform risk analysis using AI with a slow progress bar for better user experience.
         """
         try:
             # Ensure scan results are available for analysis
@@ -533,13 +533,13 @@ class NetRiskScanner:
             genai.configure(api_key=api_key)
 
             model = genai.GenerativeModel(
-                model_name="gemini-1.5-pro",
-                generation_config={
-                    "temperature": 0.7,
-                    "top_p": 0.9,
-                    "top_k": 50,
-                    "max_output_tokens": 1024,
-                    "response_mime_type": "text/plain",
+                model_name="gemini-1.5-flash-8b",
+                generation_config = {
+                "temperature": 2,
+                "top_p": 0.95,
+                "top_k": 40,
+                "max_output_tokens": 8192,
+                "response_mime_type": "text/plain",
                 }
             )
             chat_session = model.start_chat(history=[])
@@ -556,32 +556,9 @@ class NetRiskScanner:
             ai_prompt = f"{ai_prompt_template}\n{self.nmap_output_for_analysis.strip()}"
 
             def analysis_task():
-                """
-                Perform AI analysis with retries and backoff.
-                """
                 try:
-                    max_retries = 5  # Maximum retry attempts
-                    retry_delay = 5  # Initial delay between retries
-                    response = None
-
-                    for attempt in range(max_retries):
-                        try:
-                            # Send the analysis request to the AI
-                            response = chat_session.send_message(ai_prompt)
-                            break  # Exit the loop if successful
-                        except Exception as e:
-                            if "429" in str(e):  # Handle quota errors
-                                if attempt < max_retries - 1:
-                                    delay = retry_delay * (2 ** attempt)  # Exponential backoff
-                                    self.update_status(f"Quota exceeded. Retrying in {delay} seconds...")
-                                    threading.Event().wait(delay)
-                                else:
-                                    raise Exception("Quota exceeded. Maximum retry attempts reached.")
-                            else:
-                                raise e
-
-                    if not response:
-                        raise Exception("Failed to receive a response from AI.")
+                    # Perform the analysis process
+                    response = chat_session.send_message(ai_prompt)
 
                     # Process and clean the AI's response
                     risk_assessment_text = self.clean_response_text(response.text)
@@ -593,6 +570,7 @@ class NetRiskScanner:
                     # Display the risk assessment in the GUI
                     self.risk_text.config(state="normal")
                     self.risk_text.delete("1.0", tk.END)
+
                     self.risk_text.insert(tk.END, "Nmap Scan Risk Assessment\n\n", "bold")
                     self.risk_text.insert(tk.END, "=" * 20 + "\n\n", "normal")
                     self.risk_text.insert(tk.END, risk_assessment_text + "\n\n", "normal")
@@ -602,42 +580,46 @@ class NetRiskScanner:
                     self.risk_text.insert(tk.END, "- Follow best practices to secure services.\n", "normal")
                     self.risk_text.insert(tk.END, "- Close unused ports.\n", "normal")
                     self.risk_text.insert(tk.END, "- Regularly update software and services.\n", "normal")
-                    self.risk_text.config(state="disabled")
 
-                    # Mark the analysis as completed
-                    self.analysis_completed = True
+                    self.risk_text.config(state="disabled")
                     self.update_status("Risk analysis completed.")
-                    self.save_button.config(state=NORMAL)
+                    self.save_button.config(state=NORMAL)  # Enable save button
+
+                    # Mark analysis as done for progress synchronization
+                    self.analysis_completed = True
 
                 except Exception as e:
                     self.enqueue_result(f"AI Risk Assessment Error: {str(e)}", for_risk=True)
                     self.update_status(f"Error during risk analysis: {str(e)}")
-                    self.analysis_completed = True
 
             def progress_task():
                 """
-                Simulate a progress bar that completes only when the analysis is done.
+                Slow progress bar simulation, independent of the actual analysis speed.
                 """
+                self.analysis_completed = False  # Flag to monitor analysis completion
                 progress = 0
                 while progress < 100:
-                    if self.stop_event.is_set():
+                    if self.stop_event.is_set() or self.analysis_completed:
                         break
 
-                    # Increment progress bar
+                    # Increment progress bar slowly
                     progress = min(progress + 1, 100)
                     self.progress_value.set(progress)
                     self.update_status(f"Analysis in progress... {progress}% completed")
                     self.root.update_idletasks()
-                    threading.Event().wait(0.1)  # Adjust delay for smoother progress
+                    threading.Event().wait(0.1)  # Adjust this delay to control speed (slower with higher delay)
 
-                    # Complete progress bar only if analysis is completed
-                    if self.analysis_completed and progress >= 100:
-                        break
+                # Ensure progress bar is at 100% when analysis completes
+                if self.analysis_completed:
+                    self.progress_value.set(100)
+                    self.update_status("Risk analysis completed.")
 
-            # Run analysis and progress tasks in separate threads
-            self.analysis_completed = False  # Flag to monitor the completion of the analysis
-            threading.Thread(target=analysis_task, daemon=True).start()
-            threading.Thread(target=progress_task, daemon=True).start()
+            # Run the analysis and progress tasks in separate threads
+            analysis_thread = threading.Thread(target=analysis_task, daemon=True)
+            progress_thread = threading.Thread(target=progress_task, daemon=True)
+
+            analysis_thread.start()
+            progress_thread.start()
 
         except Exception as e:
             self.enqueue_result(f"AI Risk Assessment Error: {str(e)}", for_risk=True)
