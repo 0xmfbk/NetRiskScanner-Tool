@@ -105,7 +105,7 @@ cd NetRiskScanner
 
 ### **2. Install Python Libraries**
 ```bash
-pip install -r requirements.txt
+pip install --break-system-packages -r requirements.txt
 ```
 
 ---
