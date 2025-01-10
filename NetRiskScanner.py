@@ -84,7 +84,7 @@ class NetRiskScanner:
 
     def show_documentation(self):
         """Open the documentation link in the user's web browser."""
-        documentation_url = "https://github.com/MustafaFBK/DSC-Nmap-Copy/blob/main/NetRiskScanner%20Document.pdf"
+        documentation_url = "https://github.com/MustafaFBK/NetRiskScanner-Tool/blob/56afaa4ba4b58967b3bdd1ab1dfe075226537da5/NetRiskScanner%20Document.pdf"
         try:
             webbrowser.open(documentation_url)
         except Exception as e:
@@ -433,7 +433,7 @@ class NetRiskScanner:
             # Cleanup and reset buttons
             self.scan_button.config(state=NORMAL)
             self.stop_button.config(state=DISABLED)
-            self.update_status("Ready")
+            self.update_status("Completed")
 
     def perform_risk_analysis(self):
         try:
@@ -445,7 +445,7 @@ class NetRiskScanner:
             self.enqueue_result("Starting AI Risk Assessment...")
 
             # Configure Google Generative AI
-            api_key = "AIzaSyBgf4etgJtM3y40kiRDUxbYQmtozzXa2T0"
+            api_key = "AIzaSyBgf4etgJtM3y40kiRDUxbYQmtozzXa2T0"  # Replace with your actual API key
             if not api_key:
                 messagebox.showerror("Error", "AI API key is missing. Please set the GEMINI_API_KEY environment variable.")
                 return
@@ -464,52 +464,16 @@ class NetRiskScanner:
             )
             chat_session = model.start_chat(history=[])
 
-            # Prompt AI for risk assessment
-            ai_prompt = (
-                f"Analyze the provided Nmap scan output and create a professional, structured risk assessment report with the following format:\n\n"
-                
-                f"1. Executive Summary:\n"
-                f"   Provide a concise overview of the scan findings, highlighting key risks and security concerns.\n\n"
-                
-                f"2. Identified Vulnerabilities:\n"
-                f"   - List vulnerabilities categorized by severity (High, Medium, Low).\n"
-                f"   - Include a brief description of each vulnerability and its potential impact.\n"
-                f"   - Specify associated services and ports for each identified vulnerability.\n\n"
-                
-                f"3. Risk Levels:\n"
-                f"   | Port | Service | Risk Level | Description |\n"
-                f"   |------|---------|------------|-------------|\n"
-                f"   - Present a structured table listing:\n"
-                f"     - Port: The scanned port number.\n"
-                f"     - Service: The service associated with the port.\n"
-                f"     - Risk Level: The severity of the risk (e.g., Low, Medium, High).\n"
-                f"     - Description: A clear explanation of the risk.\n\n"
-                
-                f"4. Recommendations:\n"
-                
-                f"   Immediate Actions:\n"
-                f"     1. List specific steps to address critical vulnerabilities immediately. For example:\n"
-                f"        - Firewall Configuration: Configure a firewall to block unnecessary inbound traffic.\n"
-                f"        - Disable Unnecessary Services: Turn off services that are not required.\n"
-                f"        - Apply Critical Patches: Ensure all critical vulnerabilities are patched promptly.\n\n"
-                
-                f"   Short-Term Strategies:\n"
-                f"     1. Implement a Firewall: Configure a firewall to block all unnecessary inbound traffic and restrict outbound traffic based on the principle of least privilege. Regularly review and update firewall rules.\n"
-                f"     2. Patch Management: Ensure all systems are up-to-date with the latest security patches to address known vulnerabilities in operating systems and applications.\n"
-                f"     3. Vulnerability Scanning: Perform regular vulnerability scans using a comprehensive scanner to identify potential weaknesses and address discovered vulnerabilities promptly.\n\n"
-                
-                f"   Long-Term Strategies:\n"
-                f"     1. Security Awareness Training: Educate users on security best practices, including phishing awareness, password management, and recognizing suspicious activity.\n"
-                f"     2. Penetration Testing: Conduct periodic penetration testing to simulate real-world attacks and identify vulnerabilities that automated scans might miss.\n"
-                f"     3. Security Audits: Perform regular security audits to ensure security policies are followed and controls are effective.\n"
-                f"     4. Incident Response Plan: Develop and maintain an incident response plan to handle security incidents effectively. Include procedures for detection, containment, eradication, recovery, and post-incident analysis.\n\n"
-                
-                f"5. Disclaimer:\n"
-                f"   This assessment is based solely on the provided Nmap scan data and provides a limited view of the system's security posture. A comprehensive penetration test, including manual vulnerability assessment and exploitation attempts, is recommended for a thorough evaluation of the target system's security. This report should not be considered a complete security audit and does not guarantee complete system security.\n\n"
-                
-                f"Scan Output:\n{self.nmap_output_for_analysis.strip()}"
-            )
+            # Read the AI prompt from the external file
+            try:
+                with open("ai_prompt.txt", "r", encoding="utf-8") as file:
+                    ai_prompt_template = file.read()
+            except FileNotFoundError:
+                messagebox.showerror("Error", "AI prompt file 'ai_prompt.txt' not found.")
+                return
 
+            # Add the scan output to the prompt
+            ai_prompt = f"{ai_prompt_template}\n{self.nmap_output_for_analysis.strip()}"
 
             response = chat_session.send_message(ai_prompt)
 
@@ -537,7 +501,6 @@ class NetRiskScanner:
             self.risk_text.config(state="disabled")
             self.update_status("Risk analysis completed.")
             self.save_button.config(state=NORMAL)  # Enable save button
-
 
         except Exception as e:
             self.enqueue_result(f"AI Risk Assessment Error: {str(e)}", for_risk=True)
