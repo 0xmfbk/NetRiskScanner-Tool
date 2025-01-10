@@ -192,7 +192,7 @@ class NetRiskScanner:
         ttk.Checkbutton(parent, text=label_text, variable=variable, bootstyle=SUCCESS).pack(side=LEFT, padx=5)
 
     def create_scan_buttons(self, parent):
-        """Create the buttons for starting, stopping, and clearing scans."""
+        """Create the buttons for starting, stopping, clearing scans, and saving results."""
         button_frame = ttk.Frame(parent, padding=10)
         button_frame.pack(fill=X, padx=10)
 
@@ -206,15 +206,43 @@ class NetRiskScanner:
         self.clear_button = ttk.Button(button_frame, text="Clear Results", command=self.clear_results, bootstyle=INFO)
         self.clear_button.pack(side=LEFT, padx=5)
 
-        # Command display with dynamic right padding
         self.command_display = ttk.Entry(button_frame, width=80, state="readonly")
         self.command_display.pack(side=LEFT, padx=5, fill=X, expand=True)
 
         self.copy_button = ttk.Button(button_frame, text="Copy Command", command=self.copy_command, bootstyle=INFO)
         self.copy_button.pack(side=LEFT, padx=5)
 
-        self.analysis_button = ttk.Button(button_frame, text="Analysis", command=self.perform_risk_analysis, bootstyle=PRIMARY)
+        self.analysis_button = ttk.Button(button_frame, text="Result Analysis", command=self.perform_risk_analysis, state=DISABLED, bootstyle=PRIMARY)
         self.analysis_button.pack(side=LEFT, padx=5)
+
+        self.save_button = ttk.Button(button_frame, text="Save the result", command=self.export_results, state=DISABLED, bootstyle=SUCCESS)
+        self.save_button.pack(side=LEFT, padx=5)
+
+    def save_risk_assessment(self):
+        """Save the Risk Assessment results to a text file."""
+        try:
+            # Open file dialog to select save location
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt")],
+                title="Save Risk Assessment"
+            )
+            if not file_path:
+                return  # User canceled the save dialog
+
+            # Fetch the Risk Assessment content
+            self.risk_text.config(state="normal")  # Temporarily unlock the text widget
+            risk_assessment_content = self.risk_text.get("1.0", tk.END).strip()
+            self.risk_text.config(state="disabled")  # Lock the text widget back
+
+            # Save the content to the chosen file
+            with open(file_path, "w", encoding="utf-8") as file:
+                file.write(risk_assessment_content)
+
+            messagebox.showinfo("Success", "Risk Assessment saved successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save Risk Assessment: {str(e)}")
+
 
     def copy_command(self):
         """Copy the raw command to the clipboard."""
@@ -508,6 +536,8 @@ class NetRiskScanner:
 
             self.risk_text.config(state="disabled")
             self.update_status("Risk analysis completed.")
+            self.save_button.config(state=NORMAL)  # Enable save button
+
 
         except Exception as e:
             self.enqueue_result(f"AI Risk Assessment Error: {str(e)}", for_risk=True)
@@ -582,7 +612,7 @@ class NetRiskScanner:
         return cleaned_text.strip()
 
     def clear_results(self):
-        """Clear all displayed results."""
+        """Clear all displayed results and disable buttons."""
         self.result_text.config(state="normal")
         self.result_text.delete("1.0", tk.END)
         self.result_text.config(state="disabled")
@@ -590,6 +620,10 @@ class NetRiskScanner:
         self.risk_text.config(state="normal")
         self.risk_text.delete("1.0", tk.END)
         self.risk_text.config(state="disabled")
+
+        # Disable Analysis and Save buttons when results are cleared
+        self.analysis_button.config(state=DISABLED)
+        self.save_button.config(state=DISABLED)
 
     def export_results(self):
         """Export scan results and risk assessments to a file."""
@@ -618,6 +652,12 @@ class NetRiskScanner:
                 self.risk_text.config(state="normal")
                 self.risk_text.insert(tk.END, risk + "\n")
                 self.risk_text.config(state="disabled")
+            
+            # Enable the "Save" button if the Risk Assessment is not empty
+            if self.risk_text.get("1.0", tk.END).strip():
+                self.save_button.config(state=NORMAL)
+            else:
+                self.save_button.config(state=DISABLED)
         except Exception as e:
             print(f"Error updating result: {e}")
         finally:
