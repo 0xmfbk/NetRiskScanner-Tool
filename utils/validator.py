@@ -7,19 +7,17 @@ def expand_ip_range_with_octet(start_ip, end_octet):
     The range is applied to the last octet.
     """
     start = ip_address(start_ip)
-    start_prefix = '.'.join(str(x) for x in str(start).split('.')[:-1])  # Get the first three octets
-    start_last_octet = int(str(start).split('.')[-1])  # Last octet of the start IP
-    end_last_octet = int(end_octet)  # The end of the range
+    start_prefix = '.'.join(str(start).split('.')[:-1])  # Get the first three octets
+    start_last_octet = int(start.exploded.split('.')[-1])  # Last octet of the start IP
+    end_last_octet = int(end_octet)
 
-    # Generate the list of IPs with the expanded last octet
     return [f"{start_prefix}.{i}" for i in range(start_last_octet, end_last_octet + 1)]
 
 def expand_ipv4_cidr_range(cidr):
     """
     Expands a CIDR range into a list of IP addresses.
     """
-    network = ip_network(cidr, strict=False)
-    return [str(ip) for ip in network.hosts()]
+    return [str(ip) for ip in ip_network(cidr, strict=False).hosts()]
 
 def is_valid_target(target):
     """
@@ -31,81 +29,64 @@ def is_valid_target(target):
     - Ranges with last octet (e.g., '192.168.1.1-10').
     - Space-separated targets (e.g., '192.168.1.1 192.168.1.195').
     """
-    # Regular expressions for valid IP addresses, domain names, and ranges
-    ipv4_pattern = r"^((25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})(\.(?!$)|$)){4}$"
-    domain_pattern = r"^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$"
-    ipv6_pattern = r"^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$"
-    ipv4_range_pattern = r"^(\d{1,3}(\.\d{1,3}){3})-(\d{1,3}(\.\d{1,3}){3})$"
-    ipv4_last_octet_range_pattern = r"^(\d{1,3}(\.\d{1,3}){3})-(\d+)$"  # For range format like '192.168.1.1-10'
-    ipv4_cidr_pattern = r"^(\d{1,3}(\.\d{1,3}){3})/(\d{1,2})$"  # CIDR notation (e.g., 192.168.1.1/24)
-
     if not target or not isinstance(target, str):
         return False
 
-    # Split by spaces for multiple targets
-    targets = target.split()
+    # Regular expressions for valid inputs
+    patterns = {
+        "ipv4": r"^((25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})(\.(?!$)|$)){4}$",
+        "domain": r"^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$",
+        "ipv6": r"^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$",
+        "ipv4_range": r"^(\d{1,3}(\.\d{1,3}){3})-(\d{1,3}(\.\d{1,3}){3})$",
+        "last_octet_range": r"^(\d{1,3}(\.\d{1,3}){3})-(\d+)$",
+        "ipv4_cidr": r"^(\d{1,3}(\.\d{1,3}){3})/(\d{1,2})$",
+    }
 
-    expanded_targets = []  # To store expanded IPs
+    expanded_targets = []
 
-    for t in targets:
-        t = t.strip()  # Remove any leading or trailing whitespace
-
-        # Check if it's a valid IPv4 address
-        if re.match(ipv4_pattern, t):
+    for t in map(str.strip, target.split()):  # Handle space-separated targets
+        if re.match(patterns["ipv4"], t):
             expanded_targets.append(t)
-            continue
-
-        # Check if it's a valid domain
-        if re.match(domain_pattern, t):
+        elif re.match(patterns["domain"], t):
             expanded_targets.append(t)
-            continue
-
-        # Check if it's a valid IPv6 address
-        if re.match(ipv6_pattern, t):
+        elif re.match(patterns["ipv6"], t):
             expanded_targets.append(t)
-            continue
-
-        # Check if it's a valid range with the last octet (e.g., '192.168.1.1-10')
-        if re.match(ipv4_last_octet_range_pattern, t):
+        elif re.match(patterns["last_octet_range"], t):
             try:
                 start_ip, end_octet = t.split('-')
-                if not end_octet.isdigit() or not (0 <= int(end_octet) <= 255):
-                    return False  # Ensure the range is valid
-                expanded_targets.extend(expand_ip_range_with_octet(start_ip, end_octet))
-                continue
+                if 0 <= int(end_octet) <= 255:
+                    expanded_targets.extend(expand_ip_range_with_octet(start_ip, end_octet))
+                else:
+                    return False
             except ValueError:
                 return False
-
-        # Skip processing of the range format '192.168.1.1-192.168.1.100'
-        if re.match(ipv4_range_pattern, t):
-            continue  # Simply skip this case, it won't be processed
-
-        # Check if it's a valid IPv4 CIDR notation (e.g., '192.168.1.1/24')
-        if re.match(ipv4_cidr_pattern, t):
+        elif re.match(patterns["ipv4_cidr"], t):
             try:
-                network = expand_ipv4_cidr_range(t)
-                expanded_targets.extend(network)
-                continue
+                expanded_targets.extend(expand_ipv4_cidr_range(t))
             except ValueError:
                 return False
-
-        # Check if it's a valid IPv4 network (CIDR)
-        try:
-            network = ip_network(t, strict=False)  # Validate the network
-            expanded_targets.append(str(network))
+        elif re.match(patterns["ipv4_range"], t):
+            # Currently unsupported format
             continue
-        except ValueError:
-            pass
-
-        # If none of the above match, return False
-        return False
+        else:
+            try:
+                network = ip_network(t, strict=False)
+                expanded_targets.append(str(network))
+            except ValueError:
+                return False
 
     return expanded_targets
 
+def is_valid_ip_spoof(ip):
+    """Validate the spoofed IP address format."""
+    return bool(re.match(r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$', ip))
+
 def is_valid_mac_spoof(mac):
     """Validate the spoofed MAC address format."""
-    mac_regex = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
-    return re.match(mac_regex, mac)
+    is_valid = bool(re.match(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', mac))
+    if not is_valid:
+        print(f"Invalid MAC address: {mac}")  # Debug statement
+    return is_valid
 
 def is_valid_port_range(port_range):
     """
@@ -117,19 +98,13 @@ def is_valid_port_range(port_range):
     if not port_range:
         return True  # Port range is optional
 
-    if not isinstance(port_range, str):
-        return False
-
-    # Check for comma-separated ports (e.g., '22,80,443')
-    if re.match(r'^\d+(,\d+)*$', port_range):
+    if re.match(r'^\d+(,\d+)*$', port_range):  # Comma-separated ports
         try:
-            ports = map(int, port_range.split(','))
-            return all(0 <= port <= 65535 for port in ports)
+            return all(0 <= int(port) <= 65535 for port in port_range.split(','))
         except ValueError:
             return False
 
-    # Check for port range format (e.g., '22-80')
-    match = re.match(r"^(\d+)(-(\d+))?$", port_range)
+    match = re.match(r"^(\d+)(-(\d+))?$", port_range)  # Port range format
     if match:
         try:
             start = int(match.group(1))
