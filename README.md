@@ -145,10 +145,6 @@ Users can save scan results and risk assessments to a `.txt` file for documentat
 
 ---
 
-This detailed breakdown covers all aspects of the NetRiskScanner’s features and functionalities. The tool’s intuitive design and advanced capabilities make it an excellent choice for network professionals and enthusiasts alike.
-
----
-
 ## **Prerequisites**
 
 Ensure the following are installed and set up on your system:
