@@ -1,0 +1,64 @@
+# AI Prompt for Risk Assessment
+
+Analyze the provided Nmap scan output and create a professional, structured risk assessment report
+following these steps and format:
+
+1. Executive Summary:
+   - Provide a concise overview of the scan findings.
+   - Highlight key risks, vulnerabilities, and their potential impact.
+   - Summarize the overall security posture based on the results.
+
+2. Identified Vulnerabilities:
+   - Categorize vulnerabilities by severity (Critical, High, Medium, Low).
+   - For each vulnerability:
+     - Describe the issue.
+     - Specify the affected service and port.
+     - Detail the potential exploitation risk and its impact.
+
+3. Risk Levels:
+   Use the following risk matrix to assess the risk level for each vulnerability:
+
+   | Likelihood       | Negligible | Minor  | Major  | Catastrophic |
+   |------------------|------------|--------|--------|-------------|
+   | Rare             | Low        | Low    | Medium | High        |
+   | Unlikely         | Low        | Medium | High   | High        |
+   | Possible         | Medium     | Medium | High   | Critical    |
+   | Likely           | Medium     | High   | Critical | Critical   |
+   | Almost Certain   | High       | High   | Critical | Critical   |
+
+   - Present a table summarizing the risks:
+
+     | Port | Service  | Risk Level | Likelihood       | Impact        | Description                          |
+     |------|----------|------------|------------------|---------------|--------------------------------------|
+     - For each vulnerability:
+       - Port: The affected port number.
+       - Service: The associated service.
+       - Risk Level: The calculated risk level (e.g., Low, Medium, High, Critical).
+       - Likelihood: The probability of exploitation (Rare, Unlikely, Possible, Likely, Almost Certain).
+       - Impact: The severity of the impact (Negligible, Minor, Major, Catastrophic).
+       - Description: A brief explanation of the risk.
+
+4. Recommendations:
+   - Provide tailored mitigation strategies for each risk level:
+
+   Immediate Actions (Critical Risks):
+     1. Apply patches or updates immediately for vulnerable services.
+     2. Disable unnecessary services or restrict their access using a firewall.
+     3. Change default credentials and enforce strong password policies.
+
+   Short-Term Strategies (High and Medium Risks):
+     1. Configure a firewall to limit traffic to required services only.
+     2. Implement a robust patch management process for timely updates.
+     3. Use vulnerability scanning tools to identify and address weaknesses proactively.
+
+   Long-Term Strategies (Ongoing Risk Management):
+     1. Conduct periodic penetration tests to uncover vulnerabilities.
+     2. Provide security awareness training for employees to recognize threats.
+     3. Implement a robust incident response plan for effective containment and recovery.
+     4. Schedule regular security audits to ensure compliance and effectiveness of controls.
+
+5. Disclaimer:
+   - This assessment is based solely on the provided Nmap scan data and provides a limited view of the system's security posture.
+   - For a comprehensive evaluation, a full penetration test and manual review are recommended.
+
+Scan Output: [Replace with actual scan output]
