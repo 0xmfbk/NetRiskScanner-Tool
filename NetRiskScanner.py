@@ -226,7 +226,7 @@ class NetRiskScanner:
     def create_split_display(self, parent):
         """
         Create split display: left for scan results, right for risk assessment.
-        Includes horizontal and vertical scrollbars for both text areas.
+        Includes a correctly placed horizontal scrollbar for the Risk Assessment text area.
         """
         display_frame = ttk.Frame(parent)
         display_frame.pack(fill=BOTH, expand=True, padx=10, pady=10)
@@ -235,21 +235,12 @@ class NetRiskScanner:
         results_frame = ttk.Labelframe(display_frame, text="Scan Results", padding=10, bootstyle=PRIMARY)
         results_frame.pack(side=LEFT, fill=BOTH, expand=True, padx=(0, 5))
 
-        result_text_frame = ttk.Frame(results_frame)
-        result_text_frame.pack(fill=BOTH, expand=True)
+        self.result_text = ttk.Text(results_frame, wrap="word", state="disabled", height=20, width=50)
+        self.result_text.pack(side=LEFT, fill=BOTH, expand=True, padx=5)
 
-        self.result_text = ttk.Text(result_text_frame, wrap="none", state="disabled", height=20, width=50)
-        self.result_text.pack(side=LEFT, fill=BOTH, expand=True)
-
-        # Vertical scrollbar for Scan Results
-        result_scrollbar_vertical = ttk.Scrollbar(result_text_frame, orient=tk.VERTICAL, command=self.result_text.yview)
-        self.result_text.config(yscrollcommand=result_scrollbar_vertical.set)
-        result_scrollbar_vertical.pack(side=tk.RIGHT, fill=tk.Y)
-
-        # Horizontal scrollbar for Scan Results
-        result_scrollbar_horizontal = ttk.Scrollbar(results_frame, orient=tk.HORIZONTAL, command=self.result_text.xview)
-        self.result_text.config(xscrollcommand=result_scrollbar_horizontal.set)
-        result_scrollbar_horizontal.pack(side=tk.BOTTOM, fill=tk.X)
+        results_scrollbar = ttk.Scrollbar(results_frame, orient=tk.VERTICAL, command=self.result_text.yview)
+        self.result_text.config(yscrollcommand=results_scrollbar.set)
+        results_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # Right: Risk Assessment
         risk_frame = ttk.Labelframe(display_frame, text="Risk Assessment", padding=10, bootstyle=WARNING)
@@ -272,30 +263,58 @@ class NetRiskScanner:
         risk_scrollbar_horizontal.pack(side=tk.BOTTOM, fill=tk.X)
 
     def create_progress_bar(self, parent):
-        """Create the progress bar with animation."""
-        progress_frame = ttk.Labelframe(parent, text="Scan Progress", padding=10, bootstyle=PRIMARY)
+        """Create an optimized progress bar."""
+        progress_frame = ttk.Labelframe(
+            parent, text="Scan Progress", padding=10, bootstyle=PRIMARY
+        )
         progress_frame.pack(fill=X, padx=10, pady=5)
 
-        self.progress_bar = ttk.Progressbar(progress_frame, variable=self.progress_value, maximum=100, bootstyle=INFO, mode="determinate")
+        # Progress bar with clean style
+        self.progress_bar = ttk.Progressbar(
+            progress_frame,
+            variable=self.progress_value,
+            maximum=100,
+            bootstyle="success",  # Changed to "success" for a clean look
+            mode="determinate",
+        )
         self.progress_bar.pack(fill=X, expand=True)
 
     def create_status_bar(self, parent):
-        """Create the status bar at the bottom of the window."""
+        """Create an optimized status bar with colored text."""
         status_frame = ttk.Frame(parent, padding=5)
         status_frame.pack(fill=X, side=BOTTOM)
 
-        self.status_label = ttk.Label(status_frame, textvariable=self.status_message, anchor=W, bootstyle=SECONDARY)
+        self.status_label = ttk.Label(
+            status_frame,
+            textvariable=self.status_message,
+            anchor=W,
+            font=("Helvetica", 10, "bold"),
+            bootstyle=WARNING,  # Changed for better visibility
+        )
         self.status_label.pack(fill=X)
 
-    def update_progress(self, current_line):
-        """Update the progress bar value dynamically."""
-        if current_line > self.total_lines:
-            self.total_lines = current_line
+    def update_progress(self, current_line, total_lines=None):
+        """
+        Update the progress bar dynamically.
+
+        Args:
+            current_line (int): The current progress count.
+            total_lines (int, optional): Total progress count. Defaults to None.
+        """
+        if total_lines is not None:
+            self.total_lines = total_lines  # Update the total lines dynamically if provided
 
         if self.total_lines > 0:
+            # Calculate progress as a percentage
             progress = min(int((current_line / self.total_lines) * 100), 100)
-            self.progress_value.set(progress)
+            self.progress_value.set(progress)  # Update the progress bar value
+            
+            # Update the UI to reflect changes immediately
+            self.root.update_idletasks()
 
+        # Debugging: Print progress to console for verification (optional)
+        print(f"Progress: {progress}%")
+        
     def start_scan(self):
         """Start the NetRiskScanner scan."""
         target = self.target_entry.get()
@@ -420,32 +439,46 @@ class NetRiskScanner:
             # Prompt AI for risk assessment
             ai_prompt = (
                 f"Analyze the provided Nmap scan output and create a professional, structured risk assessment report with the following format:\n\n"
-                f"\n1. **Executive Summary:**\n"
-                f"\t   - Provide a concise overview of the scan findings, highlighting key risks and security concerns.\n\n"
-                f"\n2. **Identified Vulnerabilities:**\n"
-                f"\t   - List vulnerabilities categorized by severity (High, Medium, Low).\n"
-                f"\t   - Include a brief description of each vulnerability and its potential impact.\n"
-                f"\t   - Specify associated services and ports for each identified vulnerability.\n\n"
-                f"\n3. **Risk Levels:**\n"
-                f"   - Present a structured table with the following columns:\n"
-                f"     - **Port**: The scanned port number.\n"
-                f"     - **Service**: The service associated with the port.\n"
-                f"     - **Risk Level**: The severity of the risk (e.g., Low, Medium, High).\n"
-                f"     - **Description**: A clear explanation of the risk.\n"
-                f"   - Ensure the table is properly formatted and readable.\n\n"
-                f"\n4. **Recommendations:**\n"
-                f"   - Provide actionable recommendations categorized into three sections:\n"
-                f"     - **Immediate Actions:**\n"
-                f"\t       1. List specific steps to address critical vulnerabilities immediately. Include firewall configurations, service disabling, or patches.\n"
-                f"\t       2. Ensure each action is clearly numbered and described in detail.\n\n"
-                f"     - **Short-Term Strategies:**\n"
-                f"\t       1. List actions that should be implemented within the next few weeks to mitigate medium-severity risks.\n"
-                f"\t       2. Focus on configuration changes, software updates, or additional security measures.\n\n"
-                f"     - **Long-Term Strategies:**\n"
-                f"\t       1. Outline best practices for ongoing security and risk mitigation, such as regular vulnerability scanning, penetration testing, and user education.\n"
-                f"\t       2. Number each step and provide specific, actionable advice.\n\n"
-                f"\n5. **Disclaimer:**\n"
-                f"   - Add a formal disclaimer emphasizing that this assessment is based on the provided scan data and that a comprehensive penetration test is recommended for a complete evaluation.\n\n"
+                
+                f"1. Executive Summary:\n"
+                f"   Provide a concise overview of the scan findings, highlighting key risks and security concerns.\n\n"
+                
+                f"2. Identified Vulnerabilities:\n"
+                f"   - List vulnerabilities categorized by severity (High, Medium, Low).\n"
+                f"   - Include a brief description of each vulnerability and its potential impact.\n"
+                f"   - Specify associated services and ports for each identified vulnerability.\n\n"
+                
+                f"3. Risk Levels:\n"
+                f"   | Port | Service | Risk Level | Description |\n"
+                f"   |------|---------|------------|-------------|\n"
+                f"   - Present a structured table listing:\n"
+                f"     - Port: The scanned port number.\n"
+                f"     - Service: The service associated with the port.\n"
+                f"     - Risk Level: The severity of the risk (e.g., Low, Medium, High).\n"
+                f"     - Description: A clear explanation of the risk.\n\n"
+                
+                f"4. Recommendations:\n"
+                
+                f"   Immediate Actions:\n"
+                f"     1. List specific steps to address critical vulnerabilities immediately. For example:\n"
+                f"        - Firewall Configuration: Configure a firewall to block unnecessary inbound traffic.\n"
+                f"        - Disable Unnecessary Services: Turn off services that are not required.\n"
+                f"        - Apply Critical Patches: Ensure all critical vulnerabilities are patched promptly.\n\n"
+                
+                f"   Short-Term Strategies:\n"
+                f"     1. Implement a Firewall: Configure a firewall to block all unnecessary inbound traffic and restrict outbound traffic based on the principle of least privilege. Regularly review and update firewall rules.\n"
+                f"     2. Patch Management: Ensure all systems are up-to-date with the latest security patches to address known vulnerabilities in operating systems and applications.\n"
+                f"     3. Vulnerability Scanning: Perform regular vulnerability scans using a comprehensive scanner to identify potential weaknesses and address discovered vulnerabilities promptly.\n\n"
+                
+                f"   Long-Term Strategies:\n"
+                f"     1. Security Awareness Training: Educate users on security best practices, including phishing awareness, password management, and recognizing suspicious activity.\n"
+                f"     2. Penetration Testing: Conduct periodic penetration testing to simulate real-world attacks and identify vulnerabilities that automated scans might miss.\n"
+                f"     3. Security Audits: Perform regular security audits to ensure security policies are followed and controls are effective.\n"
+                f"     4. Incident Response Plan: Develop and maintain an incident response plan to handle security incidents effectively. Include procedures for detection, containment, eradication, recovery, and post-incident analysis.\n\n"
+                
+                f"5. Disclaimer:\n"
+                f"   This assessment is based solely on the provided Nmap scan data and provides a limited view of the system's security posture. A comprehensive penetration test, including manual vulnerability assessment and exploitation attempts, is recommended for a thorough evaluation of the target system's security. This report should not be considered a complete security audit and does not guarantee complete system security.\n\n"
+                
                 f"Scan Output:\n{self.nmap_output_for_analysis.strip()}"
             )
 
@@ -505,28 +538,30 @@ class NetRiskScanner:
         if not risk_levels:
             return "No risk levels identified in the assessment."
 
-        # Define headers and calculate column widths dynamically
+        # Define headers
         headers = ["Port", "Service", "Risk Level", "Description"]
+
+        # Calculate column widths dynamically based on the content
         column_widths = {
-            "Port": max(len("Port"), max(len(str(item["Port"])) for item in risk_levels)),
-            "Service": max(len("Service"), max(len(item["Service"]) for item in risk_levels)),
-            "Risk Level": max(len("Risk Level"), max(len(item["Risk Level"]) for item in risk_levels)),
-            "Description": max(len("Description"), max(len(item["Description"]) for item in risk_levels)),
+            "Port": max(len("Port"), *(len(str(item["Port"])) for item in risk_levels)),
+            "Service": max(len("Service"), *(len(item["Service"]) for item in risk_levels)),
+            "Risk Level": max(len("Risk Level"), *(len(item["Risk Level"]) for item in risk_levels)),
+            "Description": max(len("Description"), *(len(item["Description"]) for item in risk_levels)),
         }
 
-        # Add spacing to column widths for better readability
+        # Add padding to column widths for better readability
         column_widths = {key: width + 2 for key, width in column_widths.items()}
 
         # Build header row
-        header_row = "|".join(header.center(column_widths[header]) for header in headers)
+        header_row = "|".join(header.ljust(column_widths[header]) for header in headers)
         separator_row = "+".join("-" * column_widths[header] for header in headers)
 
-        # Build rows dynamically
+        # Build table rows dynamically
         rows = []
         for level in risk_levels:
             row = "|".join(
-                str(level[key]).ljust(column_widths[key])[:column_widths[key]]
-                for key in headers
+                str(level[header]).ljust(column_widths[header])[:column_widths[header]]
+                for header in headers
             )
             rows.append(row)
 
