@@ -1,20 +1,19 @@
 import subprocess
 import threading
 
-
 class Runner_Tool:
     def __init__(self, update_result_callback, update_risk_callback=None):
         """
         Initializes the Runner_Tool class.
         Args:
-            update_result_callback (function): Callback function to handle scan results in real time.
+            update_result_callback (function): Callback function to handle scan results in real-time.
             update_risk_callback (function): Optional callback to handle risk assessment based on scan results.
         """
         self.update_result_callback = update_result_callback
         self.update_risk_callback = update_risk_callback
         self.scan_thread = None
         self.scan_process = None
-        self.stop_event = threading.Event()  # Event to signal scan termination
+        self.stop_event = threading.Event()
 
     def build_command(self, target, port_range, options):
         """
@@ -26,54 +25,57 @@ class Runner_Tool:
         Returns:
             list: List of command arguments for subprocess.
         """
-        base_command = ["nmap"]
-        if options.get("scan_type"):
-            base_command.append(options["scan_type"].split(": ")[1])
+        command = ["nmap"]
+
+        # Map option keys to their corresponding command flags
+        option_mapping = {
+            "scan_type": lambda value: value.split(": ")[1],
+            "service_scan": lambda _: "-sV",
+            "os_detection": lambda _: "-O",
+            "aggressive_scan": lambda _: "-A",
+            "verbose": lambda _: "-v",
+            "no_ping": lambda _: "-Pn",
+           # "spoof_mac": lambda value: f"--spoof-mac {value}",
+            "timing_template": lambda value: value
+        }
+
+        # Append options based on the mapping
+        for key, handler in option_mapping.items():
+            if key in options and options[key]:
+                command.append(handler(options[key]))
+
+        # Append port range and target
         if port_range:
-            base_command.append(f"-p{port_range}")
-        if options.get("service_scan"):
-            base_command.append("-sV")
-        if options.get("os_detection"):
-            base_command.append("-O")
-        if options.get("aggressive_scan"):
-            base_command.append("-A")
-        if options.get("verbose"):
-            base_command.append("-v")
-        if options.get("no_ping"):
-            base_command.append("-Pn")
+            command.append(f"-p{port_range}")
         if target:
-            base_command.append(target)
+            command.append(target)
         else:
             raise ValueError("Target cannot be empty.")
-        return base_command
+
+        return command
 
     def run_scan(self, target, port_range, options):
-        """Run the scan command and update progress."""
+        """
+        Executes the scan command and updates the progress.
+        """
         try:
-            # Build the command
             command = self.build_command(target, port_range, options)
             self.update_result_callback(f"Executing: {' '.join(command)}")
 
-            # Start the subprocess
             self.scan_process = subprocess.Popen(
                 command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
 
-            # Capture and process standard output
             for line in self.scan_process.stdout:
                 if self.stop_event.is_set():
                     self.scan_process.terminate()
                     self.update_result_callback("Scan stopped by user.")
                     return
-
-                # Pass each line of output to the callback
                 self.update_result_callback(line.strip())
 
-            # Capture and process standard error
             for error_line in self.scan_process.stderr:
                 self.update_result_callback(f"Error: {error_line.strip()}")
 
-            # Wait for process to complete
             self.scan_process.wait()
 
             if not self.stop_event.is_set():
@@ -89,19 +91,23 @@ class Runner_Tool:
             self.cleanup_process()
 
     def terminate_scan_process(self):
-        """Forcefully terminate the scan subprocess."""
+        """
+        Terminates the scan subprocess gracefully, or forcefully if necessary.
+        """
         if self.scan_process:
             try:
-                self.scan_process.terminate()  # Attempt graceful termination
+                self.scan_process.terminate()
                 self.scan_process.wait(timeout=2)
             except subprocess.TimeoutExpired:
-                self.scan_process.kill()  # Force kill if not terminated
+                self.scan_process.kill()
                 self.update_result_callback("Scan process forcefully terminated.")
             finally:
                 self.cleanup_process()
 
     def cleanup_process(self):
-        """Clean up the scan process and reset the stop event."""
+        """
+        Resets the scan process and stop event.
+        """
         self.scan_process = None
         self.stop_event.clear()
         self.update_result_callback("Scan process cleaned up.")
