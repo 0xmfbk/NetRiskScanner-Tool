@@ -200,7 +200,7 @@ nmap --version
 
 Run the tool with the command:
 ```bash
-python Nmap_Main.py
+python NetRiskScanner.py
 ```
 
 ## **2. Configuring Scans**
