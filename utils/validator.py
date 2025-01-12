@@ -81,13 +81,6 @@ def is_valid_ip_spoof(ip):
     """Validate the spoofed IP address format."""
     return bool(re.match(r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$', ip))
 
-def is_valid_mac_spoof(mac):
-    """Validate the spoofed MAC address format."""
-    is_valid = bool(re.match(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', mac))
-    if not is_valid:
-        print(f"Invalid MAC address: {mac}")  # Debug statement
-    return is_valid
-
 def is_valid_port_range(port_range):
     """
     Validates the port range format and limits:
