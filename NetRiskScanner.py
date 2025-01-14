@@ -12,6 +12,7 @@ import threading
 from queue import Queue
 import tkinter as tk
 import webbrowser
+import requests
 import sys
 
 class NetRiskScanner:
@@ -20,12 +21,7 @@ class NetRiskScanner:
         self.root.title("NetRiskScanner Tool")
         self.style = ttk.Style()
 
-        # Get the screen width and height
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-
-        # Set the window geometry to the maximum screen size
-        self.root.geometry(f"{screen_width}x{screen_height}+0+0")
+        self.root.geometry(f"{self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}+0+0")
 
         # Initialize variables
         self.stop_event = threading.Event()
@@ -34,6 +30,7 @@ class NetRiskScanner:
         self.result_queue = Queue()
         self.risk_queue = Queue()
         self.process = None
+        self.nmap_output_for_analysis = ""
         self.total_lines = 100
 
         # Define enqueue_result before initializing Runner_Tool
@@ -54,12 +51,9 @@ class NetRiskScanner:
 
 
     def define_enqueue_result(self):
-        """Define the enqueue_result function."""
+        """Define a thread-safe enqueue result function for scan and risk queues."""
         def enqueue_result(result_line, for_risk=False):
-            if for_risk:
-                self.risk_queue.put(result_line)
-            else:
-                self.result_queue.put(result_line)
+            (self.risk_queue if for_risk else self.result_queue).put(result_line)
         return enqueue_result
 
     def create_menu(self):
@@ -167,16 +161,9 @@ class NetRiskScanner:
             options_frame,
             textvariable=self.scan_type,
             values=[
-                "Ping Scan : -sn",
-                "SYN Scan : -sS",
-                "TCP Connect Scan : -sT",
-                "UDP Scan : -sU",
-                "Null Scan : -sN",
-                "FIN Scan : -sF",
-                "Xmas Scan : -sX",
-                "ACK Scan : -sA",
-                "Window Scan : -sW",
-                "IP Protocol Scan : -sO"
+                "Ping Scan : -sn", "SYN Scan : -sS", "TCP Connect Scan : -sT",
+                "UDP Scan : -sU", "Null Scan : -sN", "FIN Scan : -sF",
+                "Xmas Scan : -sX", "ACK Scan : -sA", "Window Scan : -sW", "IP Protocol Scan : -sO"
             ],
             width=40,
         )
@@ -460,48 +447,46 @@ class NetRiskScanner:
             )
 
             # Initialize progress tracking
-            total_lines_estimate = 100  # Estimated total output lines for progress
+            estimated_lines = 100  # Estimated number of output lines for progress
             current_line = 0
-            nmap_output = ""
+            nmap_output = []
 
-            # Capture and process the Nmap output in real-time
-            for line in self.process.stdout:
+            # Process Nmap output in real-time
+            for line in iter(self.process.stdout.readline, ""):
                 if self.stop_event.is_set():
                     self.process.terminate()
                     self.update_status("Scan stopped by user.")
                     return
 
-                nmap_output += line  # Append the output to the full result
-                self.enqueue_result(line.strip())  # Display results in the GUI
+                nmap_output.append(line)
+                self.enqueue_result(line.strip())
                 current_line += 1
+                self.update_progress("Scanning", current_line, estimated_lines)
 
-                # Update progress dynamically
-                self.update_progress("Scanning", current_line, total_lines_estimate)
-
-            # Capture and process any errors from stderr
-            for error_line in self.process.stderr:
+            # Process any errors from stderr
+            for error_line in iter(self.process.stderr.readline, ""):
                 self.enqueue_result(f"Error: {error_line.strip()}")
 
             # Wait for the scan process to complete
             self.process.wait()
 
-            # Check if the scan was stopped by the user
-            if self.stop_event.is_set():
+            if self.process.returncode != 0:
+                self.enqueue_result("Nmap encountered an error. Check the results for details.")
+            elif self.stop_event.is_set():
                 self.update_status("Scan stopped.")
                 return
 
-            # Finalize the scan results
-            self.nmap_output_for_analysis = nmap_output
-            self.progress_value.set(100)  # Set progress bar to 100%
+            # Finalize and store the scan results
+            self.nmap_output_for_analysis = "".join(nmap_output)
+            self.progress_value.set(100)
             self.update_status("Scan completed successfully. You can now perform risk analysis.")
-            self.analysis_button.config(state=NORMAL)  # Enable the "Do Analysis" button
+            self.analysis_button.config(state=NORMAL)
 
         except Exception as e:
+            self.enqueue_result(f"Error: {str(e)}")
             self.update_status(f"Error during scan: {str(e)}")
-            self.enqueue_result(f"Runtime Error: {str(e)}")
 
         finally:
-            # Cleanup and reset UI elements
             self.scan_button.config(state=NORMAL)
             self.stop_button.config(state=DISABLED)
             self.update_status("Ready")
@@ -510,41 +495,47 @@ class NetRiskScanner:
             
     def perform_risk_analysis(self):
         """
-        Perform risk analysis using AI with a slow progress bar for better user experience.
+        Perform risk analysis using AI with progress updates. Includes CVE extraction and validation.
+        Ensures a complete report is generated even if no vulnerabilities are found.
         """
         try:
-            # Ensure scan results are available for analysis
+            # Check if scan results are available
             if not hasattr(self, "nmap_output_for_analysis") or not self.nmap_output_for_analysis.strip():
                 messagebox.showerror("Error", "No Nmap output available for analysis.")
                 return
 
-            # Reset the progress bar and initialize status
+            # Prepare the scan data
+            scan_data = self.nmap_output_for_analysis.strip()
+            if not scan_data:
+                messagebox.showerror("Error", "Nmap output is empty or invalid.")
+                return
+
+            # Reset progress bar and initialize status
             self.progress_value.set(0)
             self.update_status("Performing risk analysis using AI...")
-            self.enqueue_result("Starting AI Risk Assessment...")
-            self.stop_event.clear()  # Ensure stop event is clear before starting
+            self.enqueue_result("Starting AI Risk Assessment...\n")
+            self.stop_event.clear()
 
             # Configure Google Generative AI
             api_key = "AIzaSyBgf4etgJtM3y40kiRDUxbYQmtozzXa2T0"  # Replace with your actual API key
-            if not api_key:
-                messagebox.showerror("Error", "AI API key is missing. Please set the GEMINI_API_KEY environment variable.")
+            if not api_key.strip():
+                messagebox.showerror("Error", "AI API key is missing. Please set it in the configuration.")
                 return
 
             genai.configure(api_key=api_key)
-
             model = genai.GenerativeModel(
                 model_name="gemini-1.5-flash-8b",
-                generation_config = {
-                "temperature": 2,
-                "top_p": 0.95,
-                "top_k": 40,
-                "max_output_tokens": 8192,
-                "response_mime_type": "text/plain",
-                }
+                generation_config={
+                    "temperature": 0.7,
+                    "top_p": 0.9,
+                    "top_k": 40,
+                    "max_output_tokens": 2000,
+                    "response_mime_type": "text/plain",
+                },
             )
             chat_session = model.start_chat(history=[])
 
-            # Read the AI prompt template from an external file
+            # Load the AI prompt template
             try:
                 with open("ai_prompt.txt", "r", encoding="utf-8") as file:
                     ai_prompt_template = file.read()
@@ -552,133 +543,248 @@ class NetRiskScanner:
                 messagebox.showerror("Error", "AI prompt file 'ai_prompt.txt' not found.")
                 return
 
-            # Prepare the AI prompt with scan results
-            ai_prompt = f"{ai_prompt_template}\n{self.nmap_output_for_analysis.strip()}"
+            # Prepare the full AI prompt
+            ai_prompt = f"{ai_prompt_template}\nScan Output:\n{scan_data}"
 
             def analysis_task():
+                """Task to perform the AI risk analysis."""
                 try:
-                    # Perform the analysis process
                     response = chat_session.send_message(ai_prompt)
-
-                    # Process and clean the AI's response
                     risk_assessment_text = self.clean_response_text(response.text)
 
-                    # Extract Risk Levels table and recommendations dynamically
-                    extracted_risk_levels = self.extract_risk_levels(risk_assessment_text)
-                    risk_levels_table = self.generate_risk_levels_table(extracted_risk_levels)
+                    # Extract and display risk levels
+                    risk_levels = self.extract_risk_levels(risk_assessment_text)
+                    if risk_levels:
+                        risk_table = self.generate_risk_levels_table(risk_levels)
+                    else:
+                        risk_table = "No risk levels identified in the assessment."
 
-                    # Display the risk assessment in the GUI
-                    self.risk_text.config(state="normal")
-                    self.risk_text.delete("1.0", tk.END)
+                    self.display_risk_assessment(risk_assessment_text, risk_table)
 
-                    self.risk_text.insert(tk.END, "Nmap Scan Risk Assessment\n\n", "bold")
-                    self.risk_text.insert(tk.END, "=" * 20 + "\n\n", "normal")
-                    self.risk_text.insert(tk.END, risk_assessment_text + "\n\n", "normal")
-                    self.risk_text.insert(tk.END, "Risk Levels:\n", "bold")
-                    self.risk_text.insert(tk.END, risk_levels_table + "\n\n", "normal")
-                    self.risk_text.insert(tk.END, "Recommendations:\n", "bold")
-                    self.risk_text.insert(tk.END, "- Follow best practices to secure services.\n", "normal")
-                    self.risk_text.insert(tk.END, "- Close unused ports.\n", "normal")
-                    self.risk_text.insert(tk.END, "- Regularly update software and services.\n", "normal")
+                    # Extract and validate CVEs
+                    cve_list = self.extract_cves_from_assessment(risk_assessment_text)
+                    if cve_list:
+                        messagebox.showinfo("CVEs Found", f"Extracted {len(cve_list)} CVE(s) for validation.")
+                        self.validate_risk_assessment(cve_list)
+                    else:
+                        messagebox.showinfo("No CVEs Found", "No CVE IDs detected in the risk assessment.")
 
-                    self.risk_text.config(state="disabled")
-                    self.update_status("Risk analysis completed.")
-                    self.save_button.config(state=NORMAL)  # Enable save button
-
-                    # Mark analysis as done for progress synchronization
                     self.analysis_completed = True
+                    self.update_status("Risk analysis completed.")
 
                 except Exception as e:
-                    self.enqueue_result(f"AI Risk Assessment Error: {str(e)}", for_risk=True)
+                    self.enqueue_result(f"Error during risk analysis: {str(e)}", for_risk=True)
                     self.update_status(f"Error during risk analysis: {str(e)}")
 
             def progress_task():
-                """
-                Slow progress bar simulation, independent of the actual analysis speed.
-                """
-                self.analysis_completed = False  # Flag to monitor analysis completion
+                """Simulate progress updates for risk analysis."""
+                self.analysis_completed = False
                 progress = 0
                 while progress < 100:
                     if self.stop_event.is_set() or self.analysis_completed:
                         break
 
-                    # Increment progress bar slowly
                     progress = min(progress + 1, 100)
                     self.progress_value.set(progress)
                     self.update_status(f"Analysis in progress... {progress}% completed")
-                    self.root.update_idletasks()
-                    threading.Event().wait(0.1)  # Adjust this delay to control speed (slower with higher delay)
+                    threading.Event().wait(0.1)
 
-                # Ensure progress bar is at 100% when analysis completes
                 if self.analysis_completed:
                     self.progress_value.set(100)
                     self.update_status("Risk analysis completed.")
 
-            # Run the analysis and progress tasks in separate threads
-            analysis_thread = threading.Thread(target=analysis_task, daemon=True)
-            progress_thread = threading.Thread(target=progress_task, daemon=True)
-
-            analysis_thread.start()
-            progress_thread.start()
+            # Start the analysis and progress tasks
+            threading.Thread(target=analysis_task, daemon=True).start()
+            threading.Thread(target=progress_task, daemon=True).start()
 
         except Exception as e:
-            self.enqueue_result(f"AI Risk Assessment Error: {str(e)}", for_risk=True)
+            self.enqueue_result(f"Error during risk analysis: {str(e)}", for_risk=True)
             self.update_status(f"Error during risk analysis: {str(e)}")
+        
         
     def extract_risk_levels(self, risk_assessment_text):
         """
-        Extract risk levels from the AI response dynamically.
+        Extract risk levels from the AI response.
+
+        Args:
+            risk_assessment_text (str): Text containing risk levels.
+
+        Returns:
+            list: Extracted risk level details as dictionaries.
         """
-        # Example pattern to match risk levels (adjust based on AI response format)
-        risk_level_pattern = re.compile(r"Port:\s*(\d+).*?Service:\s*(.*?)\s*Risk Level:\s*(.*?)\s*Description:\s*(.*?)\n", re.DOTALL)
-        matches = risk_level_pattern.findall(risk_assessment_text)
+        pattern = re.compile(
+            r"Port:\s*(\d+).*?Service:\s*(.*?)\s*Risk Level:\s*(.*?)\s*Description:\s*(.*?)\n",
+            re.DOTALL,
+        )
+        matches = pattern.findall(risk_assessment_text)
 
-        risk_levels = []
-        for match in matches:
-            risk_levels.append({
-                "Port": match[0],
-                "Service": match[1].strip(),
-                "Risk Level": match[2].strip(),
-                "Description": match[3].strip(),
-            })
-        return risk_levels
-
+        return [
+            {"Port": match[0], "Service": match[1].strip(), "Risk Level": match[2].strip(), "Description": match[3].strip()}
+            for match in matches
+        ]
+        
+        
+        
     def generate_risk_levels_table(self, risk_levels):
         """
-        Generate a properly formatted and dynamically adjusted table for Risk Levels.
+        Generate a formatted table for Risk Levels.
+
+        Args:
+            risk_levels (list): List of risk level details.
+
+        Returns:
+            str: Formatted risk levels table or a message if no risks are found.
         """
         if not risk_levels:
             return "No risk levels identified in the assessment."
 
-        # Define headers
         headers = ["Port", "Service", "Risk Level", "Description"]
+        column_widths = {header: max(len(header), max(len(str(level.get(header, ""))) for level in risk_levels)) + 2 for header in headers}
 
-        # Calculate column widths dynamically based on the content
-        column_widths = {
-            "Port": max(len("Port"), *(len(str(item["Port"])) for item in risk_levels)),
-            "Service": max(len("Service"), *(len(item["Service"]) for item in risk_levels)),
-            "Risk Level": max(len("Risk Level"), *(len(item["Risk Level"]) for item in risk_levels)),
-            "Description": max(len("Description"), *(len(item["Description"]) for item in risk_levels)),
-        }
-
-        # Add padding to column widths for better readability
-        column_widths = {key: width + 2 for key, width in column_widths.items()}
-
-        # Build header row
         header_row = "|".join(header.ljust(column_widths[header]) for header in headers)
         separator_row = "+".join("-" * column_widths[header] for header in headers)
+        rows = [
+            "|".join(str(level.get(header, "")).ljust(column_widths[header]) for header in headers)
+            for level in risk_levels
+        ]
 
-        # Build table rows dynamically
-        rows = []
-        for level in risk_levels:
-            row = "|".join(
-                str(level[header]).ljust(column_widths[header])[:column_widths[header]]
-                for header in headers
-            )
-            rows.append(row)
+        return "\n".join([separator_row, header_row, separator_row, *rows, separator_row])
+    
+    
+    
+    
+    def validate_risk_assessment(self, cve_list):
+        """
+        Validate the CVE list extracted from the risk assessment using the NVD API.
 
-        # Combine all rows into the final table
-        return f"{separator_row}\n{header_row}\n{separator_row}\n" + "\n".join(rows) + f"\n{separator_row}"
+        Args:
+            cve_list (list): List of CVE IDs to validate.
+        """
+        # Configuration
+        cve_api_url_base = "https://services.nvd.nist.gov/rest/json/cve/1.0/"
+        api_key = "23b3c928-6e26-4a53-859b-6b76b42e78d4"
+
+        if not cve_list or not isinstance(cve_list, list):
+            messagebox.showerror("Validation Error", "No valid CVE IDs provided for validation.")
+            return
+
+        # Initialize progress and status
+        self.progress_value.set(0)
+        self.update_status("Validating CVEs against NVD API...")
+        self.enqueue_result("Starting CVE validation process...\n", for_risk=True)
+        self.stop_event.clear()
+
+        # Validation logic inside a thread
+        def validation_task():
+            total_cves = len(cve_list)
+            validated_results = []
+
+            try:
+                for index, cve in enumerate(cve_list, start=1):
+                    # Check if user requested to stop the validation
+                    if self.stop_event.is_set():
+                        self.enqueue_result("Validation process interrupted by the user.\n", for_risk=True)
+                        self.update_status("Validation stopped.")
+                        return
+
+                    url = f"{cve_api_url_base}{cve}?apiKey={api_key}"
+                    try:
+                        response = requests.get(url, timeout=10)
+                        response.raise_for_status()  # Raise HTTPError for bad responses
+                        cve_data = response.json()
+
+                        # Extract and validate response data
+                        if "result" in cve_data and cve_data["result"]:
+                            description = (
+                                cve_data["result"]["CVE_Items"][0]["cve"]["description"]["description_data"][0]["value"]
+                            )
+                            validated_results.append({"CVE": cve, "Valid": True, "Description": description})
+                            self.enqueue_result(f"✅ {cve}: Valid CVE. Description: {description}\n", for_risk=True)
+                        else:
+                            validated_results.append({"CVE": cve, "Valid": False, "Description": "No data available"})
+                            self.enqueue_result(f"❌ {cve}: No data available on NVD.\n", for_risk=True)
+
+                    except requests.exceptions.RequestException as e:
+                        validated_results.append({"CVE": cve, "Valid": False, "Description": f"Error: {e}"})
+                        self.enqueue_result(f"⚠️ {cve}: Error during validation. Details: {e}\n", for_risk=True)
+
+                    # Update progress dynamically
+                    self.update_progress("Validating CVEs", index, total_cves)
+
+                # Summarize the validation results
+                valid_count = sum(result["Valid"] for result in validated_results)
+                invalid_count = total_cves - valid_count
+
+                self.enqueue_result("\nValidation Completed!\n", for_risk=True)
+                self.enqueue_result(f"✅ Valid CVEs: {valid_count}\n", for_risk=True)
+                self.enqueue_result(f"❌ Invalid CVEs: {invalid_count}\n", for_risk=True)
+                self.update_status("CVE validation completed successfully.")
+
+            except Exception as e:
+                self.enqueue_result(f"Error during CVE validation: {str(e)}\n", for_risk=True)
+                self.update_status(f"Validation Error: {str(e)}")
+
+            finally:
+                self.progress_value.set(100)  # Ensure progress bar completes
+                self.save_button.config(state=NORMAL)
+                self.analysis_button.config(state=NORMAL)
+
+        # Run validation task in a thread
+        threading.Thread(target=validation_task, daemon=True).start()
+
+
+
+
+    def extract_cves_from_assessment(self, risk_assessment_text):
+        """
+        Extract a unique list of CVE IDs from the risk assessment text.
+
+        Args:
+            risk_assessment_text (str): The full risk assessment text.
+
+        Returns:
+            list: A sorted list of unique CVE IDs found in the text.
+        """
+        if not risk_assessment_text or not isinstance(risk_assessment_text, str):
+            return []
+
+        # Regular expression to match CVE IDs (e.g., CVE-YYYY-NNNN or CVE-YYYY-NNNNN)
+        cve_pattern = r"\bCVE-\d{4}-\d{4,}\b"
+
+        # Find all matches and return a sorted unique list
+        cve_matches = re.findall(cve_pattern, risk_assessment_text)
+        return sorted(set(cve_matches))
+
+    def display_risk_assessment(self, risk_assessment_text, risk_levels_table):
+        """
+        Display the risk assessment and formatted risk levels in the GUI.
+
+        Args:
+            risk_assessment_text (str): Full risk assessment text.
+            risk_levels_table (str): Formatted table of risk levels.
+        """
+        try:
+            self.risk_text.config(state="normal")
+            self.risk_text.delete("1.0", tk.END)
+
+            self.risk_text.insert(tk.END, "Nmap Scan Risk Assessment\n\n", "bold")
+            self.risk_text.insert(tk.END, "=" * 20 + "\n\n", "normal")
+            self.risk_text.insert(tk.END, risk_assessment_text + "\n\n", "normal")
+            self.risk_text.insert(tk.END, "Risk Levels:\n", "bold")
+            self.risk_text.insert(tk.END, risk_levels_table + "\n\n", "normal")
+            self.risk_text.insert(tk.END, "Recommendations:\n", "bold")
+            self.risk_text.insert(tk.END, "- Follow best practices to secure services.\n", "normal")
+            self.risk_text.insert(tk.END, "- Close unused ports.\n", "normal")
+            self.risk_text.insert(tk.END, "- Regularly update software and services.\n", "normal")
+
+            self.risk_text.config(state="disabled")
+            self.save_button.config(state=NORMAL)
+
+        except Exception as e:
+            self.enqueue_result(f"Error displaying risk assessment: {str(e)}", for_risk=True)
+            self.update_status(f"Error displaying risk assessment: {str(e)}")
+
+
 
     def clean_response_text(self, text):
         """
