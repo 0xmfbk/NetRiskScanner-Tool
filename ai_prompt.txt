@@ -1,64 +1,84 @@
-# AI Prompt for Risk Assessment
+# AI Prompt for Comprehensive Risk Assessment
 
-Analyze the provided Nmap scan output and create a professional, structured risk assessment report
-following these steps and format:
+Analyze the provided Nmap scan output to create a **fully detailed and professional risk assessment report**. Ensure the report includes:
 
-1. Executive Summary:
-   - Provide a concise overview of the scan findings.
-   - Highlight key risks, vulnerabilities, and their potential impact.
-   - Summarize the overall security posture based on the results.
+1. **Detailed Analysis** of all scanned ports (both open and filtered).
+2. **Potential Risks** associated with filtered ports, including speculative vulnerabilities based on best practices.
+3. **Actionable Recommendations** tailored to the findings.
+4. **No Missing Information**—ensure all data from the scan output is thoroughly analyzed and included.
 
-2. Identified Vulnerabilities:
-   - Categorize vulnerabilities by severity (Critical, High, Medium, Low).
-   - For each vulnerability:
-     - Describe the issue.
-     - Specify the affected service and port.
-     - Detail the potential exploitation risk and its impact.
+The structure of the report should be as follows:
 
-3. Risk Levels:
-   Use the following risk matrix to assess the risk level for each vulnerability:
+---
 
-   | Likelihood       | Negligible | Minor  | Major  | Catastrophic |
-   |------------------|------------|--------|--------|-------------|
-   | Rare             | Low        | Low    | Medium | High        |
-   | Unlikely         | Low        | Medium | High   | High        |
-   | Possible         | Medium     | Medium | High   | Critical    |
-   | Likely           | Medium     | High   | Critical | Critical   |
-   | Almost Certain   | High       | High   | Critical | Critical   |
+## Network Scan Results
 
-   - Present a table summarizing the risks:
+1. **Open Ports and Services**:  
+   [List all open ports, if any, along with their associated services. If no open ports are found, explicitly state this.]
 
-     | Port | Service  | Risk Level | Likelihood       | Impact        | Description                          |
-     |------|----------|------------|------------------|---------------|--------------------------------------|
-     - For each vulnerability:
-       - Port: The affected port number.
-       - Service: The associated service.
-       - Risk Level: The calculated risk level (e.g., Low, Medium, High, Critical).
-       - Likelihood: The probability of exploitation (Rare, Unlikely, Possible, Likely, Almost Certain).
-       - Impact: The severity of the impact (Negligible, Minor, Major, Catastrophic).
-       - Description: A brief explanation of the risk.
+2. **Filtered Ports**:  
+   [List all filtered ports along with their associated services.]
 
-4. Recommendations:
-   - Provide tailored mitigation strategies for each risk level:
+---
 
-   Immediate Actions (Critical Risks):
-     1. Apply patches or updates immediately for vulnerable services.
-     2. Disable unnecessary services or restrict their access using a firewall.
-     3. Change default credentials and enforce strong password policies.
+## 1. Executive Summary:
 
-   Short-Term Strategies (High and Medium Risks):
-     1. Configure a firewall to limit traffic to required services only.
-     2. Implement a robust patch management process for timely updates.
-     3. Use vulnerability scanning tools to identify and address weaknesses proactively.
+Provide a high-level overview, addressing the following points:
 
-   Long-Term Strategies (Ongoing Risk Management):
-     1. Conduct periodic penetration tests to uncover vulnerabilities.
-     2. Provide security awareness training for employees to recognize threats.
-     3. Implement a robust incident response plan for effective containment and recovery.
-     4. Schedule regular security audits to ensure compliance and effectiveness of controls.
+- **Key Findings**: Summarize whether any open ports were detected. Highlight the presence of filtered ports and their implications.
+- **Potential Impact**: Explain the risks posed by filtered ports, such as misconfigured firewalls, shadow IT, or hidden services.
+- **Overall Security Posture**: Assess the network's security based on the lack of open ports and the presence of filtered ports. Provide a realistic rating.
 
-5. Disclaimer:
-   - This assessment is based solely on the provided Nmap scan data and provides a limited view of the system's security posture.
-   - For a comprehensive evaluation, a full penetration test and manual review are recommended.
+---
 
-Scan Output: [Replace with actual scan output]
+## 2. Identified Vulnerabilities:
+
+List all vulnerabilities or potential risks identified in the scan, even if speculative. Include the following details:
+
+- **Severity Levels**: Categorize vulnerabilities into Critical, High, Medium, and Low.
+- **For Each Vulnerability**:
+  - **Description**: Clearly describe the risk or issue.
+  - **Affected Service and Port**: Specify the port and service associated with the risk.
+  - **CVE IDs (if applicable)**: Include any relevant CVEs if the risk is linked to known vulnerabilities.
+  - **Risk Impact**: Explain the potential consequences of exploitation.
+
+---
+
+## 3. Risk Levels:
+
+Provide a detailed table summarizing all risks, including those associated with filtered ports. Use the following format:
+
+| **Port** | **Service** | **Risk Level** | **Likelihood**      | **Impact**        | **Description**                       |
+|----------|-------------|----------------|---------------------|-------------------|---------------------------------------|
+| **Port Number** | **Service Name** | **Low/Medium/High/Critical** | **Rare/Unlikely/Possible/Likely/Almost Certain** | **Negligible/Minor/Major/Catastrophic** | **Detailed explanation of the risk, including any potential CVEs or misconfigurations.** |
+
+Ensure that **every filtered port** is listed, along with its associated speculative risks, likelihood, and impact.
+
+---
+
+## 4. Recommendations:
+
+Provide **specific, actionable recommendations** tailored to the findings:
+
+### Immediate Actions (For Critical Risks):
+1. Conduct a **firewall rule review** to identify and address any misconfigurations.
+2. Investigate the possibility of **shadow IT services** operating on filtered ports.
+3. Implement **network segmentation** to isolate potential risks originating from filtered ports.
+
+### Short-Term Strategies (For High and Medium Risks):
+1. Conduct **regular security audits** to validate firewall and access control configurations.
+2. Deploy **continuous vulnerability scanning** to identify potential weaknesses behind filtered ports.
+3. Ensure **strong credential policies** for all services, even those behind filtered ports.
+
+### Long-Term Strategies (For Ongoing Risk Management):
+1. Implement **security monitoring tools** to detect anomalies and suspicious traffic patterns on filtered ports.
+2. Conduct **penetration tests targeting filtered ports** to identify any hidden vulnerabilities.
+3. Provide **security awareness training** to staff to ensure proper understanding of risks associated with filtered ports.
+
+---
+
+## 5. Disclaimer:
+
+- This assessment is based exclusively on the provided Nmap scan data. The absence of open ports reduces the immediate risk but does not guarantee absolute security.
+- Further investigation, including a **manual review of firewall configurations** and **penetration testing**, is recommended.
+- This report provides a limited perspective; a **full security evaluation** requires a more comprehensive analysis.
