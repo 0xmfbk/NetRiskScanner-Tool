@@ -86,7 +86,7 @@ class NetRiskScanner:
 
     def show_documentation(self):
         """Open the documentation link in the user's web browser."""
-        documentation_url = "https://github.com/MustafaFBK/NetRiskScanner-Tool/blob/56afaa4ba4b58967b3bdd1ab1dfe075226537da5/NetRiskScanner%20Document.pdf"
+        documentation_url = "https://github.com/MustafaFBK/NetRiskScanner-Tool/blob/4750286bee81ee32a5ec07455061b6ca9a9e76da/NetRiskScanner%20Document.pdf"
         try:
             webbrowser.open(documentation_url)
         except Exception as e:
@@ -224,7 +224,7 @@ class NetRiskScanner:
         self.analysis_button = ttk.Button(button_frame, text="Result Analysis", command=self.perform_risk_analysis, state=DISABLED, bootstyle=PRIMARY)
         self.analysis_button.pack(side=LEFT, padx=5)
 
-        self.save_button = ttk.Button(button_frame, text="Save the result", command=self.export_results, state=DISABLED, bootstyle=SUCCESS)
+        self.save_button = ttk.Button(button_frame, text="Save the result", command=self.save_risk_assessment, state=DISABLED, bootstyle=SUCCESS)
         self.save_button.pack(side=LEFT, padx=5)
 
     def save_risk_assessment(self):
