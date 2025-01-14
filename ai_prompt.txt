@@ -9,7 +9,7 @@ Analyze the provided Nmap scan output to create a **fully detailed and professio
 
 The structure of the report should be as follows:
 
----
+------------------------------
 
 ## Network Scan Results
 
@@ -19,7 +19,7 @@ The structure of the report should be as follows:
 2. **Filtered Ports**:  
    [List all filtered ports along with their associated services.]
 
----
+------------------------------
 
 ## 1. Executive Summary:
 
@@ -29,20 +29,22 @@ Provide a high-level overview, addressing the following points:
 - **Potential Impact**: Explain the risks posed by filtered ports, such as misconfigured firewalls, shadow IT, or hidden services.
 - **Overall Security Posture**: Assess the network's security based on the lack of open ports and the presence of filtered ports. Provide a realistic rating.
 
----
+------------------------------
 
 ## 2. Identified Vulnerabilities:
 
 List all vulnerabilities or potential risks identified in the scan, even if speculative. Include the following details:
 
 - **Severity Levels**: Categorize vulnerabilities into Critical, High, Medium, and Low.
+
 - **For Each Vulnerability**:
+
   - **Description**: Clearly describe the risk or issue.
   - **Affected Service and Port**: Specify the port and service associated with the risk.
   - **CVE IDs (if applicable)**: Include any relevant CVEs if the risk is linked to known vulnerabilities.
   - **Risk Impact**: Explain the potential consequences of exploitation.
 
----
+------------------------------
 
 ## 3. Risk Levels:
 
@@ -54,28 +56,31 @@ Provide a detailed table summarizing all risks, including those associated with 
 
 Ensure that **every filtered port** is listed, along with its associated speculative risks, likelihood, and impact.
 
----
+------------------------------
 
 ## 4. Recommendations:
 
 Provide **specific, actionable recommendations** tailored to the findings:
 
 ### Immediate Actions (For Critical Risks):
+
 1. Conduct a **firewall rule review** to identify and address any misconfigurations.
 2. Investigate the possibility of **shadow IT services** operating on filtered ports.
 3. Implement **network segmentation** to isolate potential risks originating from filtered ports.
 
 ### Short-Term Strategies (For High and Medium Risks):
+
 1. Conduct **regular security audits** to validate firewall and access control configurations.
 2. Deploy **continuous vulnerability scanning** to identify potential weaknesses behind filtered ports.
 3. Ensure **strong credential policies** for all services, even those behind filtered ports.
 
 ### Long-Term Strategies (For Ongoing Risk Management):
+
 1. Implement **security monitoring tools** to detect anomalies and suspicious traffic patterns on filtered ports.
 2. Conduct **penetration tests targeting filtered ports** to identify any hidden vulnerabilities.
 3. Provide **security awareness training** to staff to ensure proper understanding of risks associated with filtered ports.
 
----
+------------------------------
 
 ## 5. Disclaimer:
 
