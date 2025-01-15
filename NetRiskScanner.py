@@ -889,7 +889,7 @@ class NetRiskScanner:
 
     def show_about(self):
         """Show information about the application."""
-        messagebox.showinfo("About", "NetRiskScanner Tool\nCreated by:\n\n- Mustafa Banikhalaf\n- Mohammad Majdalawy")
+        messagebox.showinfo("About", "NetRiskScanner Tool\nVersion 1.0\nCreated by:\n- Mustafa Banikhalaf\n- Mohammad Majdalawy")
 
     def on_closing(self):
         """Handle the window closing event."""
