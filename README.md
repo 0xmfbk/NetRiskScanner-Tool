@@ -175,7 +175,7 @@ Ensure the following are installed and set up on your system:
 Follow these steps to set up and run the NetRiskScanner:
 ### **1. Clone the Repository**:
 ```bash
-git clone https://github.com/MustafaFBK/NetRiskScanner-Tool.git
+git clone https://github.com/0xmfbk/NetRiskScanner-Tool.git
 ```
 ```bash
 cd NetRiskScanner
